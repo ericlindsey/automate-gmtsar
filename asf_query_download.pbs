@@ -1,0 +1,35 @@
+#!/bin/bash
+#PBS -N asf_query_dl
+#PBS -j oe
+#PBS -V
+#PBS -m abe
+#PBS -M komodo
+#PBS -l nodes=1:ppn=1#shared
+#PBS -q q12
+
+#set optionns
+if [[ -z $config ]]; then
+  echo "$0 ERROR: need to specify config file, using -v config=CONFIG_FILE"
+else
+  
+  #load python
+  module load python/3.5.3
+  
+  Ncpus=`cat $PBS_NODEFILE | wc -l`
+  code='/home/share/insarscripts/download/asf_query_download.py'
+  
+  if [ "$PBS_O_WORKDIR" != "" ]; then
+  
+     cd $PBS_O_WORKDIR
+     echo Running $code with input $config on $Ncpus cpus:
+     echo `cat $PBS_NODEFILE`
+     echo " "
+     echo From directory: $PBS_O_WORKDIR
+     echo " "
+  
+     #run python code
+     python3.5 $code $config --download
+  
+  fi
+fi
+
