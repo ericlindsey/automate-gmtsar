@@ -1,0 +1,43 @@
+#!/bin/bash
+#PBS -N cat_s1a
+#PBS -P eos_ehill
+#PBS -l walltime=120:00:00
+#PBS -l select=1:ncpus=1
+#PBS -m bea
+
+# unused pbs options:
+# specify queue name:
+# #PBS -q q32
+# specify notification email:
+# #PBS -M elindsey@ntu.edu.sg
+
+# copy this file to your directory, and edit this code to work for your case.
+#code='/home/share/insarscripts/automate/cat_s1a.py /home/data/INSAR/S1A/P098/F* -o /home/data/INSAR/S1A/POD/s1qc.asf.alaska.edu/aux_poeorb -o /home/data/INSAR/S1A/POD/s1qc.asf.alaska.edu/aux_resorb -d A -l 107.11/-6.44/106.59/-6.09'
+
+if [ "$PBS_O_WORKDIR" != "" ]; then
+
+   #load python and latest GMTSAR
+   module load python/3/intel/2018u3
+   module load gmtsar/5.6_gmt5.4.4
+   
+   Ncpus=`cat $PBS_NODEFILE | wc -l`
+
+   cd $PBS_O_WORKDIR
+   echo Running on $Ncpus CPUs:
+   echo $code
+   echo ""
+   echo Assigned CPUs: `cat $PBS_NODEFILE`
+   echo " "
+   echo From directory: $PBS_O_WORKDIR
+   echo " "
+
+   #run python code
+   python $code
+
+else
+   echo "Error: run this command with qsub."
+   echo "the command it runs will be:"
+   echo $code
+   echo ""
+fi
+

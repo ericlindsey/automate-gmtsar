@@ -47,7 +47,7 @@ endif
   
 #resample the topo at the resolution of input file $1
 echo "resample topo grid and convert to ascii"
-gmt grdsample ../../topo/dem.grd -Gtmp_topo.grd `gmt grdinfo $1 -I-` `gmt grdinfo $1 -I` -r
+gmt grdsample ../../topo/dem.grd -Gtmp_topo.grd `grdinfo $1 -I-` `grdinfo $1 -I` -r
 gmt grd2xyz -s tmp_topo.grd > tmp_topo.llt
 
 #mask topo
@@ -65,8 +65,11 @@ if ($loslines != $looklines) then
   exit 1
 endif
 
+# really bad code - have to hardcode this path because later versions do not work for ALOS-1.
+
 echo "running "$SAT"_look on full topo for grids..."
-$SAT"_"look $2 < tmp_topo.llt > tmp_topo_look.lltenu
+#/usr/local/GMT5SAR5.2_GMT5.4.1/bin/$SAT"_"look $2 < tmp_topo.llt > tmp_topo_look.lltenu
+/usr/local/gmt/gmtsar5.6_gmt5.4.4/bin/$SAT"_"look $2 < tmp_topo.llt > tmp_topo_look.lltenu
 
 echo "creating look_[e,n,u].grd files..."
 awk '{print $1,$2,$4}' tmp_topo_look.lltenu |gmt xyz2grd -R$1 -Glook_e.grd
@@ -74,16 +77,17 @@ awk '{print $1,$2,$5}' tmp_topo_look.lltenu |gmt xyz2grd -R$1 -Glook_n.grd
 awk '{print $1,$2,$6}' tmp_topo_look.lltenu |gmt xyz2grd -R$1 -Glook_u.grd
 
 echo "running "$SAT"_look on masked topo for ascii product..."
-$SAT"_"look $2 < tmp_topo_mask.llt > tmp_topo_look_mask.lltenu
+#/usr/local/GMT5SAR5.2_GMT5.4.1/bin/$SAT"_"look $2 < tmp_topo_mask.llt > tmp_topo_look_mask.lltenu
+/usr/local/gmt/gmtsar5.6_gmt5.4.4/bin/$SAT"_"look $2 < tmp_topo.llt > tmp_topo_look.lltenu
 
 if ($#argv == 4) then
   echo "downsample each ascii column to $4 using blockmedian"
-  cut -f1,2,3 tmp_topo_look_mask.lltenu | gmt blockmedian `gmt grdinfo $1 -I-` $4 -V > tmp.t
-  cut -f1,2,4 tmp_topo_look_mask.lltenu | gmt blockmedian `gmt grdinfo $1 -I-` $4 -V > tmp.e
-  cut -f1,2,5 tmp_topo_look_mask.lltenu | gmt blockmedian `gmt grdinfo $1 -I-` $4 -V > tmp.n
-  cut -f1,2,6 tmp_topo_look_mask.lltenu | gmt blockmedian `gmt grdinfo $1 -I-` $4 -V > tmp.u
+  cut -f1,2,3 tmp_topo_look_mask.lltenu | gmt blockmedian `grdinfo $1 -I-` $4 -V > tmp.t
+  cut -f1,2,4 tmp_topo_look_mask.lltenu | gmt blockmedian `grdinfo $1 -I-` $4 -V > tmp.e
+  cut -f1,2,5 tmp_topo_look_mask.lltenu | gmt blockmedian `grdinfo $1 -I-` $4 -V > tmp.n
+  cut -f1,2,6 tmp_topo_look_mask.lltenu | gmt blockmedian `grdinfo $1 -I-` $4 -V > tmp.u
   paste tmp.t tmp.e tmp.n tmp.u | cut -f1,2,3,6,9,12 > tmp_topo_look_mask.lltenu
-  gmt blockmedian tmp_los.lld `gmt grdinfo $1 -I-` $4 -V > tmp
+  gmt blockmedian tmp_los.lld `grdinfo $1 -I-` $4 -V > tmp
   mv tmp tmp_los.lld
 endif
 
@@ -94,5 +98,5 @@ echo "creating ascii product: $base.lltenud. Columns are lat, lon, topo, look_E,
 awk '{ a=$3;getline <"tmp_topo_mask.llt";print $1,$2,$3,$4,$5,$6,a,-1}' tmp_los.lld > $base.lltenud
 
 #cleanup temporary files
-rm tmp*
+#rm tmp*
 

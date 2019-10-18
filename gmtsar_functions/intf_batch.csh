@@ -98,6 +98,8 @@ unset noclobber
   set region_cut = `grep region_cut $3 | awk '{print $3}'`
   set switch_land = `grep switch_land $3 | awk '{print $3}'`
   set defomax = `grep defomax $3 | awk '{print $3}'`
+  set psize = `grep psize $3 | awk '{print $3}'`
+  set corr_file = `grep corr_file $3 | awk '{print $3}'`
 
 #new options to assist unwrapping, to be added
 
@@ -117,8 +119,7 @@ if ($stage <= 1) then
   
 #note, hard-coded paths for testing
 #/home/elindsey/insarscripts/automate/gmtsar_functions/topo_ra.csh $3
-#/home/share/insarscripts/automate/gmtsar_functions/topo_ra.csh $3
-/Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/topo_ra.csh $3
+/home/share/insarscripts/automate/gmtsar_functions/topo_ra.csh $3
 #/Volumes/dione/data/test_GMTSAR/topo_ra.csh $3
 
 endif
@@ -166,22 +167,40 @@ if ($stage <= 3) then  #note, stage 2 is defined inside the loop
         if ($shift_topo == 1) then
           ln -s ../../topo/topo_shift.grd .
           intf.csh $ref.PRM $rep.PRM -topo topo_shift.grd
-          filter.csh $ref.PRM $rep.PRM $filter $dec
         else
           ln -s ../../topo/topo_ra.grd .
           intf.csh $ref.PRM $rep.PRM -topo topo_ra.grd
-          filter.csh $ref.PRM $rep.PRM $filter $dec
         endif
       else
         intf.csh $ref.PRM $rep.PRM
-        filter.csh $ref.PRM $rep.PRM $filter $dec
       endif
+
+      #modification, E. Lindsey May 2018 - changeable psize in filter.csh
+      if ($psize != "") then
+        echo "using psize $psize"
+      else
+        echo "using default psize of 16"
+        set psize = 16
+      endif
+
+# non-default path for testing
+/home/share/insarscripts/automate/gmtsar_functions/filter.csh $ref.PRM $rep.PRM $filter $dec $psize
+      #filter.csh $ref.PRM $rep.PRM $filter $dec
+
       echo "INTF.CSH, FILTER.CSH - END"
       echo ""
       
     endif # end stage 2
     
     # the rest is stage 3
+
+    if ($corr_file != "") then
+      echo "moving original correlation file to corr.grd.orig"
+      echo "linking user-defined correlation ../../$corr_file as corr.grd"
+      mv corr.grd corr.grd.orig
+      ln -s ../../$corr_file corr.grd
+    endif
+
     if ($threshold_snaphu != 0 ) then
       if ($region_cut == "") then
         set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
@@ -224,7 +243,7 @@ set snaphu_cmd = /home/share/insarscripts/automate/gmtsar_functions/snaphu_inter
         gmt grdmath -V phasefilt_orig_patch.grd unwrap_trend.grd SUB 2 PI MUL MOD PI SUB = phasefilt.grd
         mv unwrap.grd unwrap_nodetrend.grd
         mv unwrap_nomask.grd unwrap_nomask_nodetrend.grd
-        $snaphu_cmd $threshold_snaphu $defomax $region_cut
+        $snaphu_cmd $threshold_snaphu $defomax $topo_assisted_unwrapping $region_cut
         echo ""
         echo "adding back trend to unwrap.grd"
         echo ""

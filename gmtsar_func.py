@@ -9,7 +9,7 @@ Created on Mon Feb 27 11:31:38 2017
 
 # python-standard modules
 import os,sys,errno,subprocess,time,itertools,shutil,glob,configparser
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import numpy as np
 
 # user-defined
@@ -44,8 +44,8 @@ import s1_func
 
 ##### Specify your own path to customized c-shell functions (pre_proc_batch.csh, align_batch.csh, topo_ra.csh, intf_batch.csh, snaphu_interp.csh)
 
-#cshpath='/home/share/insarscripts/automate/gmtsar_functions/'
-cshpath='/Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/'
+cshpath='/home/share/insarscripts/automate/gmtsar_functions'
+#cshpath='/Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/'
 
 
 ###########################################
@@ -226,7 +226,7 @@ def find_scenes_ers():
 ###########################################
 # Choose which satellite function to call
 # 
-def setup_preproc(SAT, s1_subswath, s1_orbit_dirs, master=''):
+def setup_preproc(SAT, py_config, master=''):
     # setup pre-processing file
     # First, get list of scenes. Note ALOS-1 issue of dual-pol, S1 special cases
     duallist=[]
@@ -239,6 +239,8 @@ def setup_preproc(SAT, s1_subswath, s1_orbit_dirs, master=''):
     elif SAT == 'ERS':
         datalist=find_scenes_ers()
     elif SAT == 'S1':
+        s1_subswath=py_config['s1_subswath']
+        s1_orbit_dirs=[s.strip() for s in py_config['s1_orbit_dir'].split(',')]
         datalist=s1_func.find_scenes_s1(s1_subswath,s1_orbit_dirs)
         if master:
             #convert master to the data.in-style name for S1
@@ -292,12 +294,13 @@ def get_orbit_index(SAT,stem):
 
 
 # setup the list of alignment commands to be run. Simple version: all scenes to master; master is assumed to be first in list
-def setup_align(SAT,dataDotIn,align_file,scan='',logtime=''):
+def setup_align(SAT,dataDotIn,py_config,align_file,scan='',logtime=''):
     # create align.in with list of commands, and focus master image
     alignlist=[]
     if SAT=='S1':
+        s1_preproc=s1_func.get_s1_preproc(py_config)
         #Sentinel alignment cannot be done in parallel...yet!
-        alignlist=np.append(alignlist,'cd raw ; preproc_batch_tops.csh data.in ../topo/dem.grd 2 ; cd .. align_%s.log'%logtime)
+        alignlist=np.append(alignlist,'cd raw ; %s/%s data.in ../topo/dem.grd 2 ; cd .. align_%s.log'%(cshpath,s1_preproc,logtime))
     else:
         command = cshpath+'/align_batch.csh'
         orbit_indx=get_orbit_index(SAT,dataDotIn[0])
@@ -380,7 +383,7 @@ def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False):
         else:
             scene0,scene1 = el[0],el[1]
         ifg_dir = dirstems[scene0] + '_' + dirstems[scene1]
-        unwfile = 'intf/' + ifg_dir + '/unwrap.grd'
+        unwfile = 'intf/' + ifg_dir + '/phasefilt_mask_ll.grd'
         if (not (os.path.isfile(unwfile) and skip_finished)) and (np.abs(baselines[scene0] - baselines[scene1]) <= max_baseline) and (np.abs(intdays[scene0] - intdays[scene1]) <= max_timespan):
             # we run the interferogram, unless it is both done and we set skip_finished
             intflist.append([scene0,scene1])
@@ -428,50 +431,50 @@ def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False):
                         break
     # print number of interferograms
     if skip_finished:    
-        print(('Found ' + '%d'%len(donelist) + 'interferograms to skip, finished'))
+        print(('Found ' + '%d'%len(donelist) + ' interferograms to skip, finished'))
     print(('Found ' + '%d'%len(intflist) + ' interferograms to do'))
     # write intf_file
     with open(intf_file, 'w') as f:
         for i in range(len(intflist)):
             f.write('%s:%s\n'%(intflist[i][0],intflist[i][1]))
     #plot scenes, and intflist / donelist as lines
-    plot_intfs(intflist,donelist,scenelist,decyears,baselines,lines=lines,no_label=no_label)
+    #plot_intfs(intflist,donelist,scenelist,decyears,baselines,lines=lines,no_label=no_label)
 
 
-def plot_intfs(intflist,donelist,scenelist,decyears,baselines,lines=None,no_label=False):    
-    #create plots
-    ax=plt.subplot(111)
-    # plot all intfs in the two lists
-    label1='To do'
-    for pair in intflist:
-        ax.plot([decyears[pair[0]],decyears[pair[1]]],[baselines[pair[0]],baselines[pair[1]]],'b',label=label1)
-        label1=''   
-    label2='Finished'
-    for pair in donelist: 
-        ax.plot([decyears[pair[0]],decyears[pair[1]]],[baselines[pair[0]],baselines[pair[1]]],':r',label=label2)
-        label2=''
-    #plot scenes as points
-    ax.plot(list(decyears.values()),list(baselines.values()),'b.')
-    ax.plot(decyears[scenelist[0]],baselines[scenelist[0]],'r.',label='Master')
-    #TODO: add non-overlapping labels. see e.g. https://stackoverflow.com/questions/19073683/matplotlib-overlapping-annotations-text
-    if not no_label:
-        for scene in scenelist:
-            plt.annotate(
-                scene, xy=(decyears[scene],baselines[scene]), xytext=(-5, 5), size=6,
-                textcoords='offset points', ha='center', va='bottom')
-    if lines:
-        for line in lines:
-            plt.axvline(x=line)
-    #finish and save figure
-    ax.legend()
-    ax.set_ylabel('Perp. baseline (m)')
-    ax.set_xlabel('Time (years)')
-    image_fname='intfs.ps'
-    plt.savefig(image_fname)
-    print('created figure %s'%image_fname)
-    image_fname='intfs.pdf'
-    plt.savefig(image_fname)
-    print('created figure %s'%image_fname)
+# def plot_intfs(intflist,donelist,scenelist,decyears,baselines,lines=None,no_label=False):    
+#     #create plots
+#     ax=plt.subplot(111)
+#     # plot all intfs in the two lists
+#     label1='To do'
+#     for pair in intflist:
+#         ax.plot([decyears[pair[0]],decyears[pair[1]]],[baselines[pair[0]],baselines[pair[1]]],'b',label=label1)
+#         label1=''   
+#     label2='Finished'
+#     for pair in donelist: 
+#         ax.plot([decyears[pair[0]],decyears[pair[1]]],[baselines[pair[0]],baselines[pair[1]]],':r',label=label2)
+#         label2=''
+#     #plot scenes as points
+#     ax.plot(list(decyears.values()),list(baselines.values()),'b.')
+#     ax.plot(decyears[scenelist[0]],baselines[scenelist[0]],'r.',label='Master')
+#     #TODO: add non-overlapping labels. see e.g. https://stackoverflow.com/questions/19073683/matplotlib-overlapping-annotations-text
+#     if not no_label:
+#         for scene in scenelist:
+#             plt.annotate(
+#                 scene, xy=(decyears[scene],baselines[scene]), xytext=(-5, 5), size=6,
+#                 textcoords='offset points', ha='center', va='bottom')
+#     if lines:
+#         for line in lines:
+#             plt.axvline(x=line)
+#     #finish and save figure
+#     ax.legend()
+#     ax.set_ylabel('Perp. baseline (m)')
+#     ax.set_xlabel('Time (years)')
+#     image_fname='intfs.ps'
+#     plt.savefig(image_fname)
+#     print('created figure %s'%image_fname)
+#     image_fname='intfs.pdf'
+#     plt.savefig(image_fname)
+#     print('created figure %s'%image_fname)
     
 
 def load_baseline_table():
@@ -493,21 +496,24 @@ def load_baseline_table():
 
 
 # run pre-processing, twice if no master was specified (to choose a central master scene)
-def run_preproc(SAT,s1_subswath,master,configfile):
+def run_preproc(SAT,py_config,master,configfile):
     if master:
         print('run preprocessing using user-specified master: %s'%master)
     else:
         print('Master not specified, running initial preprocessing step to determine master.')
-        exec_preproc_command(SAT,s1_subswath,configfile)
+        exec_preproc_command(SAT,py_config,configfile)
         print('Identifying most central scene to use as master.')
         master=choose_master_image(SAT)
         print('run preprocessing again using automatically selected master: %s'%master)
-    exec_preproc_command(SAT,s1_subswath,configfile)
+    exec_preproc_command(SAT,py_config,configfile)
 
 
 # create and call the pre-processing command
-def exec_preproc_command(SAT,s1_subswath,configfile):
+def exec_preproc_command(SAT,py_config,configfile):
     if SAT == 'S1':
+        # read parameters from config file:
+        s1_subswath=py_config['s1_subswath']
+        s1_preproc=s1_func.get_s1_preproc(py_config)
         #modify the XML files for Sentinel
         edit_xml_for_s1_preproc()
         #make links and call preproc_batch_tops.csh
@@ -516,9 +522,9 @@ def exec_preproc_command(SAT,s1_subswath,configfile):
                     cd raw
                     ln -s ../raw_orig/*EOF .
                     ln -s ../raw_orig/*/measurement/*iw%s*tiff .
-                    preproc_batch_tops.csh data.in ../topo/dem.grd 1 >& preprocess_%s.log
+                    %s/%s data.in ../topo/dem.grd 1 >& preprocess_%s.log
                     cd ..
-                    '''%(s1_subswath,time.strftime("%Y_%m_%d-%H_%M_%S"))
+                    '''%(s1_subswath,cshpath,s1_preproc,time.strftime("%Y_%m_%d-%H_%M_%S"))
         run_command(command, logging=False)
     elif SAT == 'TSX':
         #almost generic but we don't run cleanup.

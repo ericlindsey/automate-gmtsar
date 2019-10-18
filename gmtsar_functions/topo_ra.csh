@@ -83,24 +83,29 @@ unset noclobber
 #
   cleanup.csh topo
 #
+# make an amplitude image of the master - always
+#
+  echo "SLC2AMP.CSH - START"
+  cd SLC
+  slc2amp.csh $master.PRM $rng amp-$master.grd
+  cd ../topo
+  echo "SLC2AMP.CSH - END"
+#
 # make topo_ra if there is dem.grd
 #
   if ($topo_phase == 1) then 
     echo " "
     echo "DEM2TOPO_RA.CSH - START"
     echo "USER SHOULD PROVIDE DEM FILE"
-    cd topo
     cp ../SLC/$master.PRM master.PRM
     set led_file = `grep led_file master.PRM | awk '{print $3}'`
     ln -s ../raw/$led_file .
-    ln -s ../SLC/amp-$master.grd . 
     if (-f dem.grd) then 
       dem2topo_ra.csh master.PRM dem.grd 
     else 
       echo "no DEM file found: " dem.grd 
       exit 1
     endif
-    cd .. 
     echo "DEM2TOPO_RA.CSH - END"
 # 
 # shift topo_ra
@@ -108,12 +113,8 @@ unset noclobber
     if ($shift_topo == 1) then 
       echo " "
       echo "OFFSET_TOPO - START"
-      cd SLC
-      slc2amp.csh $master.PRM $rng amp-$master.grd
-      cd ..
-      cd topo
+      ln -s ../SLC/amp-$master.grd . 
       offset_topo amp-$master.grd topo_ra.grd 0 0 7 topo_shift.grd 
-      cd ..
       echo "OFFSET_TOPO - END"
     else if ($shift_topo == 0) then 
       echo "shift_topo = 0: NO TOPO_RA SHIFT"
@@ -131,12 +132,10 @@ unset noclobber
   if ($switch_land == 1) then
     echo " "
     echo "LANDMASK - START"
-    cd topo
     if ($region_cut == "") then
-      set region_cut = `gmt grdinfo amp-$master.grd -I- | cut -c3-20`
+      set region_cut = `gmt grdinfo ../SLC/amp-$master.grd -I- | cut -c3-20`
     endif
     landmask.csh $region_cut
-    cd ..
     echo "LANDMASK - END"
   endif
   

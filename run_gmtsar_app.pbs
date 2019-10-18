@@ -1,11 +1,16 @@
 #!/bin/bash
+### Set job parameters
 #PBS -N gmtsar_app
-#PBS -j oe
-#PBS -V
-#PBS -m abe
-#PBS -M komodo
-#PBS -l nodes=1:ppn=12
-#PBS -q q12
+#PBS -P eos_ehill
+#PBS -l walltime=120:00:00
+#PBS -l select=1:ncpus=32
+#PBS -m n
+#PBS -q q32
+
+# unused pbs options:
+# specify queue name:
+# specify notification email:
+# #PBS -M elindsey@ntu.edu.sg
 
 #NOTE:
 #options are set in batch.config
@@ -18,14 +23,16 @@
 #improvement needed
 #for scansar mode, have to set up the subswath folders manually and run this script once in each subswath
 #created: Mar 2017 
+#updated for Gekko: Jun 2019
 
 #set optionns
 configfile=batch.config
 
 #load mpi, python and gmtsar
 #module load openmpi/1.4.5-gnu
-module load GMTSAR/5.4/GMT5.4.1-gnu
-module load python/3.5.3
+module load gmtsar/5.6_gmt5.4.4
+module load python/3/intel/2018u3
+module load ghostscript/9.26
 
 Ncpus=`cat $PBS_NODEFILE | wc -l`
 #mpiOption='-mca btl tcp,sm,self -np'
@@ -42,7 +49,7 @@ if [ "$PBS_O_WORKDIR" != "" ]; then
 
    #run python code
    #mpiexec $mpiOption $Ncpus python3.5 $code --mpi $configfile
-   python3.5 $code $configfile
+   python $code $configfile
 
 fi
 

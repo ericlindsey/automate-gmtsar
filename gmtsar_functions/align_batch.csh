@@ -128,9 +128,9 @@
      #align.csh $SAT $master $slave $supermaster $mode
      
 # hard-coded paths during testing
-/Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/align.csh $SAT $master $slave $supermaster $mode
+#/Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/align.csh $SAT $master $slave $supermaster $mode
 #/home/elindsey/insarscripts/automate/gmtsar_functions/align.csh $SAT $master $slave $supermaster $mode
-#/home/share/insarscripts/automate/gmtsar_functions/align.csh $SAT $master $slave $supermaster $mode
+/home/share/insarscripts/automate/gmtsar_functions/align.csh $SAT $master $slave $supermaster $mode
 #/Volumes/dione/data/test_GMTSAR/align.csh $SAT $master $slave $supermaster $mode
 
       if (! -f ../$master.SLC) then

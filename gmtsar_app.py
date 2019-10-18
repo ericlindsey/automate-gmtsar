@@ -55,6 +55,8 @@ if __name__ == '__main__':
     config=configparser.ConfigParser()
     config.optionxform = str #make the config file case-sensitive
     config.read(args.config)
+    # get python-specific options from config file as a dict - note they will all be strings
+    py_config=dict(config.items('py-config'))
     
     # Setup MPI (optional) or python multiprocessing pool
     if args.mpi:
@@ -67,10 +69,9 @@ if __name__ == '__main__':
         fstSec  = MPI.Wtime()
     else:
         import multiprocessing
-        numproc=config.getint('py-config','num_processors')
+        numproc=int(py_config['num_processors'])
         rank = 0    
 
-    # get options from config file
     SAT=config.get('py-config','sat_name')
     startstage=config.getint('py-config','startstage')
     endstage=config.getint('py-config','endstage')    
@@ -79,9 +80,12 @@ if __name__ == '__main__':
     intf_file=config.get('py-config','intf_file')
     restart=config.getboolean('py-config','restart')
     mode=config.get('py-config','mode') 
-    s1_subswath=config.get('py-config','s1_subswath')
+
+    # moved s1_specific variables over to gmtsar_func.py using the dictionary py_config
+    #
+    #s1_subswath=config.get('py-config','s1_subswath')
     # orbit dirs may potentially be a comma-separated list
-    s1_orbit_dirs=[s.strip() for s in config.get('py-config','s1_orbit_dir').split(',')]
+    #s1_orbit_dirs=[s.strip() for s in config.get('py-config','s1_orbit_dir').split(',')]
     
     # print config options
     if args.debug:
@@ -153,8 +157,8 @@ if __name__ == '__main__':
                 print('restart, deleting file raw/data.in.')
                 if os.path.isfile('raw/data.in'):
                     os.remove('raw/data.in')
-            gmtsar_func.setup_preproc(SAT,s1_subswath,s1_orbit_dirs,master)
-            gmtsar_func.run_preproc(SAT,s1_subswath,master,config_file)
+            gmtsar_func.setup_preproc(SAT,py_config,master)
+            gmtsar_func.run_preproc(SAT,py_config,master,config_file)
 
 
     ################################################
@@ -197,7 +201,7 @@ if __name__ == '__main__':
                     os.remove(align_file)
             if not os.path.isfile(align_file) or not os.path.isdir('logs_align') or not os.path.isfile('SLC/%s.SLC'%master):
                 print('running setup_align: creating a default alignment list with all scenes aligned to master.')
-                gmtsar_func.setup_align(SAT,dataDotIn,align_file,mode,logtime)
+                gmtsar_func.setup_align(SAT,dataDotIn,py_config,align_file,mode,logtime)
             cmds = gmtsar_func.get_align_commands(align_file)
             numalign=len(cmds)
             print('running %d alignments from %s using %d processors.'%(numalign,align_file,numproc))

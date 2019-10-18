@@ -39,6 +39,8 @@ if __name__ == '__main__':
     parser.add_argument('-c','--ncconvert',action='store_true',help='First use nccopy -k classic to convert to a NetCDF-3 readable file. If set to false, ensure your file is already NetCDF-3. (default: False)')
     args = parser.parse_args()
 
+    print(args)
+
     if args.outfile=='':
         #get default output filename
         filebase,fileext=os.path.splitext(args.infile)

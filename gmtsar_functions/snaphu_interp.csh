@@ -88,8 +88,8 @@ echo "interpolating masked values using a nearest neighbor algorithm"
 gmt grdmath mask2_patch.grd phase_patch.grd MUL = phase_patch_mask.grd
 #
 # call the python script to do the interpolation (-c option uses 'nccopy -k classic' to convert to netcdf-3)
-python3.6 /Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/nneigh_interp.py phase_patch_mask.grd -o phase_patch_interp.grd -c
-#python3.5 /home/share/insarscripts/automate/gmtsar_functions/nneigh_interp.py phase_patch_mask.grd -o phase_patch_interp.grd -c
+#python3.5 /Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/nneigh_interp.py phase_patch_mask.grd -o phase_patch_interp.grd -c
+python3 /home/share/insarscripts/automate/gmtsar_functions/nneigh_interp.py phase_patch_mask.grd -o phase_patch_interp.grd -c
 #python3.5 /home/elindsey/insarscripts/automate/gmtsar_functions/nneigh_interp.py phase_patch_mask.grd -o phase_patch_interp.grd -c
 #python3.5 /Volumes/dione/data/test_GMTSAR/nneigh_interp.py phase_patch_mask.grd -o phase_patch_interp.grd -c
 #
@@ -107,10 +107,12 @@ set sharedir = `gmtsar_sharedir.csh`
 echo "unwrapping phase with snaphu - higher threshold for faster unwrapping "
 
 if ($2 == 0) then
-  snaphu phase.in `gmt grdinfo -C phase_patch.grd | cut -f 10` -f $sharedir/snaphu/config/snaphu.conf.brief -c corr.in -o unwrap.out -v -s
+  snaphu phase.in `gmt grdinfo -C phase_patch.grd | cut -f 10` -f $sharedir/snaphu/config/snaphu.conf.brief -c corr.in -o unwrap.out -v -s -g components.out
 else
   sed "s/.*DEFOMAX_CYCLE.*/DEFOMAX_CYCLE  $2/g" $sharedir/snaphu/config/snaphu.conf.brief > snaphu.conf.brief
-  snaphu phase.in `gmt grdinfo -C phase_patch.grd | cut -f 10` -f snaphu.conf.brief -c corr.in -o unwrap.out -v -d
+  sed "s/.*DEFOCONST.*/DEFOCONST  0.5/g" $sharedir/snaphu/config/snaphu.conf.brief > snaphu.conf.brief
+  echo "CONNCOMPTHRESH  70" >> snaphu.conf.brief
+  snaphu phase.in `gmt grdinfo -C phase_patch.grd | cut -f 10` -f snaphu.conf.brief -c corr.in -o unwrap.out -v -d -g components.out
 endif
 echo "snaphu - finished"
 echo ""
@@ -118,6 +120,7 @@ echo ""
 # convert to grd
 #
 gmt xyz2grd unwrap.out -ZTLf -r `gmt grdinfo -I- phase_patch.grd` `gmt grdinfo -I phase_patch.grd` -Gunwrap_nomask.grd
+gmt xyz2grd components.out -ZTLu -r `gmt grdinfo -I- phase_patch.grd` `gmt grdinfo -I phase_patch.grd` -Gunwrap_components.grd
 #
 gmt grdmath unwrap_nomask.grd mask2_patch.grd MUL = tmp.grd
 #
@@ -174,8 +177,7 @@ if ($topo_assisted_unwrapping == 1) then
 
 # re-run unwrapping.
 # this could run snaphu recursively - please don't set the value 0 to 1 in this line!
-#/home/share/insarscripts/automate/gmtsar_functions/snaphu_interp.csh $1 $2 2 $4
-/Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/snaphu_interp.csh $1 $2 2 $4
+/home/share/insarscripts/automate/gmtsar_functions/snaphu_interp.csh $1 $2 2 $4
 
     # add back the topo correlated noise component
     mv unwrap.grd unwrap_remove_topo.grd

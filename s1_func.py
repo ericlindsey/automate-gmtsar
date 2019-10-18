@@ -42,37 +42,6 @@ def find_scenes_s1(s1_subswath,s1_orbit_dirs):
     return outputlist
 
 
-def find_files_by_orbit(dirlist):
-    """
-    Find all zip files that were acquired on the same orbit, and return a grouped list
-    """
-    #dictionaries will keep track of the results
-    names       = dict()
-    start_times = dict()
-    for searchdir in dirlist:
-        list_of_images=glob.glob('%s/S1*'%searchdir)
-        for item in list_of_images:
-            # we want the full path and also just the file name
-            item=os.path.abspath(item)
-            file=os.path.basename(item)
-            # get A/B, sat. mode, dates, orbit ID from the file name
-            [sat_ab,sat_mode,image_start,image_end,orbit_num] = parse_s1_SAFE_name(file)
-            #add A or B to the orbit number and use as the unique ID for identifying orbits
-            ab_orbit='S1%s_%06d'%(sat_ab,orbit_num)
-            if ab_orbit not in names:
-                names[ab_orbit] = []
-                start_times[ab_orbit] = []
-            #keep the images in time order. Find the index of the first time that is later than the image's time
-            #(this is not actually necessary to order them by time)
-            timeindx=0
-            for starttime in start_times[ab_orbit]:
-                if starttime < image_start:
-                    timeindx+=1
-            names[ab_orbit].insert(timeindx,item)
-            start_times[ab_orbit].insert(timeindx,image_start)
-    return names
-
-
 def find_images_by_orbit(dirlist,s1_orbit_dirs):
     """
     For each Sentinel-1 satellite, find all images that were acquired on the same orbit, and order them by time
@@ -248,10 +217,11 @@ def create_frame_tops(safelist,eof,llpins,logfile):
     Run the GMTSAR command create_frame_tops.csh to combine bursts within the given latitude bounds
     """
     # copy orbit file to the current directory, required for create_frame_tops.csh
+    print(eof)
     shutil.copy2(eof,os.getcwd())
     local_eof=os.path.basename(eof)
 
-    #cmd ='/home/share/insarscripts/automate/gmtsar_functions/create_frame_tops.csh %s %s %s 1 %s'%(safelist, local_eof, llpins, logfile)
-    cmd = '~/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/create_frame_tops.csh %s %s %s 1 %s'%(safelist, local_eof, llpins, logfile)
+    cmd = '/home/share/insarscripts/automate/gmtsar_functions/create_frame_tops.csh %s %s %s 1 %s'%(safelist, local_eof, llpins, logfile)
+    #cmd = '~/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/create_frame_tops.csh %s %s %s 1 %s'%(safelist, local_eof, llpins, logfile)
     gmtsar_func.run_command(cmd,logging=True)
 

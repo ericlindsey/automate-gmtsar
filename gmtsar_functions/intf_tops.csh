@@ -5,6 +5,7 @@
 # used for time series analysis
 
 # Xiaohua(Eric) Xu, Jan 20 201
+# Modified by Eric Lindsey, May 2018
 
   if ($#argv != 2) then
     echo ""
@@ -62,6 +63,8 @@
   set region_cut = `grep region_cut $2 | awk '{print $3}'`
   set switch_land = `grep switch_land $2 | awk '{print $3}'`
   set defomax = `grep defomax $2 | awk '{print $3}'`
+  set psize = `grep psize $2 | awk '{print $3}'`
+  set corr_file = `grep corr_file $2 | awk '{print $3}'`
   set range_dec = `grep range_dec $2 | awk '{print $3}'`
   set azimuth_dec = `grep azimuth_dec $2 | awk '{print $3}'`
 
@@ -72,9 +75,7 @@
 
 #new options to assist unwrapping
   set interp_unwrap = `grep interp_unwrap $2 | awk '{print $3}'`
-  echo "interp_unwrap is $interp_unwrap"
   set topo_assisted_unwrapping = `grep topo_assisted_unwrapping $2 | awk '{print $3}'`
-  echo "topo_assisted_unwrapping is $topo_assisted_unwrapping"
 #to be added
   set detrend_unwrap = `grep detrend_unwrap $2 | awk '{print $3}'`
 
@@ -134,40 +135,45 @@ endif
 
 ##################################################
 # start from: 2 - make and filter interferograms #
-#             3 - unwrap phase and geocode       #
+#             3 - unwrap phase                   #
+#             4 - geocode                        #
 ##################################################
 
-if ($stage <= 3) then
 #
 # make working directories
 #
-  echo ""
-  echo "START FORM A STACK OF INTERFEROGRAMS"
-  echo ""
-  mkdir -p intf/
-  mkdir -p intf_all/
+echo ""
+echo "START FORM A STACK OF INTERFEROGRAMS"
+echo ""
+mkdir -p intf/
+mkdir -p intf_all/
 #
 # loop over intf.in
 #
-  foreach line (`awk '{print $0}' $1`)
-    set ref = `echo $line | awk -F: '{print $1}'`
-    set rep = `echo $line | awk -F: '{print $2}'`
-    set ref_id  = `grep SC_clock_start ./raw/$ref.PRM | awk '{printf("%d",int($3))}' `
-    set rep_id  = `grep SC_clock_start ./raw/$rep.PRM | awk '{printf("%d",int($3))}' `
+foreach line (`awk '{print $0}' $1`)
+  set ref = `echo $line | awk -F: '{print $1}'`
+  set rep = `echo $line | awk -F: '{print $2}'`
+  set ref_id  = `grep SC_clock_start ./raw/$ref.PRM | awk '{printf("%d",int($3))}' `
+  set rep_id  = `grep SC_clock_start ./raw/$rep.PRM | awk '{printf("%d",int($3))}' `
 
-    echo ""
-    echo "INTF.CSH, FILTER.CSH - START"
-    cd intf
-    mkdir $ref_id"_"$rep_id
-    cd $ref_id"_"$rep_id
-    ln -s ../../raw/$ref.LED .
-    ln -s ../../raw/$rep.LED .
-    ln -s ../../raw/$ref.SLC .
-    ln -s ../../raw/$rep.SLC .
-    cp ../../raw/$ref.PRM .
-    cp ../../raw/$rep.PRM .
-    
+  cd intf
+  mkdir -p $ref_id"_"$rep_id
+  cd $ref_id"_"$rep_id
+
+  if ($stage <= 3) then
+
     if ($stage <= 2) then
+
+      echo ""
+      echo "INTF.CSH, FILTER.CSH - START"
+      echo ""
+      ln -s ../../raw/$ref.LED .
+      ln -s ../../raw/$rep.LED .
+      ln -s ../../raw/$ref.SLC .
+      ln -s ../../raw/$rep.SLC .
+      cp ../../raw/$ref.PRM .
+      cp ../../raw/$rep.PRM .
+    
       if($topo_phase == 1) then
         if($shift_topo == 1) then
           ln -s ../../topo/topo_shift.grd .
@@ -179,14 +185,28 @@ if ($stage <= 3) then
       else
         intf.csh $ref.PRM $rep.PRM
       endif
-      filter.csh $ref.PRM $rep.PRM $filter $dec $range_dec $azimuth_dec
+
+      #modification, E. Lindsey May 2018 - changeable psize in filter.csh
+      if ($psize != "") then
+        echo "using psize $psize"
+      else
+        echo "using default psize of 16"
+        set psize = 16
+      endif
+    
+# non-default path for testing
+/home/share/insarscripts/automate/gmtsar_functions/filter.csh $ref.PRM $rep.PRM $filter $dec $psize $range_dec $azimuth_dec
+    # filter.csh $ref.PRM $rep.PRM $filter $dec $range_dec $azimuth_dec
+
     else
       echo ""
       echo "Stage > 2: Skip INTF.CSH and FILTER.CSH"
       echo ""
     endif
 
+    echo ""
     echo "INTF.CSH, FILTER.CSH - END"
+    echo ""
 
 #
 # unwrapping
@@ -194,7 +214,14 @@ if ($stage <= 3) then
     if ($region_cut == "") then
       set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
     endif
-    
+
+    if ($corr_file != "") then
+      echo "moving original correlation file to corr.grd.orig"
+      echo "linking user-defined correlation ../../$corr_file as corr.grd"
+      mv corr.grd corr.grd.orig
+      ln -s ../../$corr_file corr.grd
+    endif
+
     if ($threshold_snaphu != 0 ) then
       if ($switch_land == 1) then
         cd ../../topo
@@ -210,9 +237,13 @@ if ($stage <= 3) then
       if ($interp_unwrap == 1) then
         #set snaphu_cmd = snaphu_interp.csh
         echo "SNAPHU_INTERP.CSH - START"
+        echo ""
+        echo "interp_unwrap is $interp_unwrap"
+        echo "topo_assisted_unwrapping is $topo_assisted_unwrapping"
+        echo ""
 #note, hard-coded paths for testing
-set snaphu_cmd = /Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/snaphu_interp.csh
-#set snaphu_cmd = /home/share/insarscripts/automate/gmtsar_functions/snaphu_interp.csh
+#set snaphu_cmd = /Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/snaphu_interp.csh
+set snaphu_cmd = /home/share/insarscripts/automate/gmtsar_functions/snaphu_interp.csh
 #set snaphu_cmd = /home/elindsey/insarscripts/automate/gmtsar_functions/snaphu_interp.csh
 #set snaphu_cmd = /Volumes/dione/data/test_GMTSAR/snaphu_interp.csh
       else
@@ -227,30 +258,36 @@ set snaphu_cmd = /Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmts
       echo ""
       echo "SKIP UNWRAP PHASE"
     endif
-#
-# geocoding
-#
+
+  else
     echo ""
-    echo "GEOCODE.CSH - START"
-    rm raln.grd ralt.grd
-    if ($topo_phase == 1 && $threshold_geocode != 0) then
-      rm trans.dat
-      ln -s  ../../topo/trans.dat .
-      echo "threshold_geocode: $threshold_geocode"
-      geocode.csh $threshold_geocode
-    else if($topo_phase == 1 && $threshold_geocode == 0) then
-      echo "SKIP GEOCODING"
-    else
-      echo "topo_ra is needed to geocode"
-      exit 1
-    endif
-  
+    echo "Stage > 3: Only run geocoding."
+    echo ""
+  endif
+
+  #
+  # geocoding
+  #
+  echo ""
+  echo "GEOCODE.CSH - START"
+  rm raln.grd ralt.grd
+  if ($topo_phase == 1 && $threshold_geocode != 0) then
+    rm trans.dat
+    ln -s  ../../topo/trans.dat .
+    echo "threshold_geocode: $threshold_geocode"
+    geocode.csh $threshold_geocode
+  else if($topo_phase == 1 && $threshold_geocode == 0) then
+    echo "SKIP GEOCODING"
+  else
+    echo "topo_ra is needed to geocode"
+    exit 1
+  endif
+
   cd ../..
   #if(-f intf_all/$ref_id"_"$rep_id) rm -rf intf_all/$ref_id"_"$rep_id 
   #mv intf/$ref_id"_"$rep_id intf_all/$ref_id"_"$rep_id
 
-  end
-endif
+end
 
 echo ""
 echo "END STACK OF TOPS INTERFEROGRAMS"

@@ -215,10 +215,9 @@ unset noclobber
   set FD1 = `grep fd1 $master.PRM | awk '{print $3}'`
   set npatch = `grep num_patch $master.PRM | awk '{print $3}'`
 
-  #/home/share/insarscripts/automate/gmtsar_functions/baseline_table.csh $master.PRM $master.PRM >! baseline_table.dat
-  #/home/share/insarscripts/automate/gmtsar_functions/baseline_table.csh $master.PRM $master.PRM GMT >! table.gmt
-  /Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/baseline_table.csh $master.PRM $master.PRM >! baseline_table.dat
-  /Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/baseline_table.csh $master.PRM $master.PRM GMT >! table.gmt
+  /home/share/insarscripts/automate/gmtsar_functions/baseline_table.csh $master.PRM $master.PRM >! baseline_table.dat
+  /home/share/insarscripts/automate/gmtsar_functions/baseline_table.csh $master.PRM $master.PRM GMT >! table.gmt
+
 #
 # loop and unpack the slave image using the same earth radius and near range as the master image
 #
@@ -319,10 +318,8 @@ unset noclobber
     endif
 
     #get baselines
-    #/home/share/insarscripts/automate/gmtsar_functions/baseline_table.csh $master.PRM $slave.PRM >> baseline_table.dat
-    #/home/share/insarscripts/automate/gmtsar_functions/baseline_table.csh $master.PRM $slave.PRM GMT >> table.gmt
-    /Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/baseline_table.csh $master.PRM $slave.PRM >> baseline_table.dat
-    /Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/baseline_table.csh $master.PRM $slave.PRM GMT >> table.gmt
+    /home/share/insarscripts/automate/gmtsar_functions/baseline_table.csh $master.PRM $slave.PRM >> baseline_table.dat
+    /home/share/insarscripts/automate/gmtsar_functions/baseline_table.csh $master.PRM $slave.PRM GMT >> table.gmt
 
   # end of the loop over slave images
   end
