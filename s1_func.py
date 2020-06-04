@@ -6,7 +6,8 @@ Created on Wed Oct 25 11:45:24 2017
 @author: elindsey
 """
 
-import os,sys,shutil,glob,datetime,distutils.util #,subprocess,errno
+import os,sys,shutil,glob,datetime,multiprocessing,distutils.util,random,string #,subprocess,errno
+import requests,json
 import gmtsar_func
 
 ######################## Sentinel-specific functions ########################
@@ -26,8 +27,8 @@ def find_scenes_s1(s1_subswath,s1_orbit_dirs):
     """
     outputlist=[]
     list_of_images=glob.glob('raw_orig/S1*.SAFE/annotation/s1?-iw%s-slc-vv*.xml'%s1_subswath)
-    print('found list')
-    print(list_of_images)
+    #print('found list')
+    #print(list_of_images)
 
     for item in list_of_images:
         #make sure we have just the file basename
@@ -41,8 +42,35 @@ def find_scenes_s1(s1_subswath,s1_orbit_dirs):
         outputlist.append(image_name)
     return outputlist
 
+def unzip_images_to_dir(dirlist,unzip_dir,nproc=1):
+    """
+    Look for zipped S1 SLC files and unzip them to a temporary directory, optionally running in parallel.
+    """
+    images_list=[]
+    for searchdir in dirlist:
+        dir_list=glob.glob('%s/S1?_IW_SLC*.zip'%searchdir)
+        #print('in:',searchdir)
+        #print('found list:',dir_list,'\n')
+        images_list.extend(dir_list)
+    #print('complete list:',images_list,'\n')
 
-def find_images_by_orbit(dirlist,s1_orbit_dirs):
+    cmds=[]
+    for image in images_list:
+        item=os.path.abspath(image)
+        file=os.path.basename(item)
+        cmd = 'unzip %s log_%s.txt'%(item,file)
+        cmds.append(cmd)
+
+    # go to the output directory so the unzipped results will fall there:
+    owd=os.getcwd()
+    os.chdir(unzip_dir)
+    # run multiple unzip commands at the same time:
+    with multiprocessing.Pool(processes=nproc) as pool:
+        pool.map(gmtsar_func.run_command, cmds)
+    os.chdir(owd)
+    
+
+def find_images_by_orbit(dirlist,s1_orbit_dirs,ftype='SAFE'):
     """
     For each Sentinel-1 satellite, find all images that were acquired on the same orbit, and order them by time
     """
@@ -54,9 +82,9 @@ def find_images_by_orbit(dirlist,s1_orbit_dirs):
     eofs        = dict()
     
     for searchdir in dirlist:
-        list_of_images=glob.glob('%s/S1*SAFE'%searchdir)
-        print('in',searchdir)
-        print('found_list',list_of_images,'\n')
+        list_of_images=glob.glob('%s/S1*%s'%(searchdir,ftype))
+        #print('in',searchdir)
+        #print('found list',list_of_images,'\n')
         
         for item in list_of_images:
             # we want the full path and also just the file name
@@ -65,13 +93,13 @@ def find_images_by_orbit(dirlist,s1_orbit_dirs):
             
             # get A/B, sat. mode, dates, orbit ID from the file name
             [sat_ab,sat_mode,image_start,image_end,orbit_num] = parse_s1_SAFE_name(file)
-            print('Read zipfile:',file,sat_ab,sat_mode,image_start,image_end,orbit_num)
+            #print('Read file:',file,'parameters:',sat_ab,sat_mode,image_start,image_end,orbit_num)
 
             if sat_mode in valid_modes:
                 #Find matching EOF
                 eof_name = get_latest_orbit_file(sat_ab,image_start,image_end,s1_orbit_dirs,skip_notfound=True)
                 if eof_name is not None:
-                    print('Got EOF:',eof_name)
+                    #print('Got EOF:',eof_name)
                 
                     #add A or B to the orbit number and use as the unique ID for identifying orbits
                     ab_orbit='S1%s_%06d'%(sat_ab,orbit_num)
@@ -91,20 +119,51 @@ def find_images_by_orbit(dirlist,s1_orbit_dirs):
                             timeindx+=1
                     names[ab_orbit].insert(timeindx,item)
                     start_times[ab_orbit].insert(timeindx,image_start)
-                    print('Added image at position %d for orbit %s'%(timeindx,ab_orbit) )
-                    print('List is now %s'%names[ab_orbit])
-            print('')
+                    #print('Added image at position %d for orbit %s'%(timeindx,ab_orbit) )
+                    #print('List is now %s'%names[ab_orbit])
+            #print('')
     return names, eofs
 
 
-def get_latest_orbit_file(sat_ab,imagestart,imageend,s1_orbit_dirs,skip_notfound=True):
+def get_latest_orbit_esa_api(sat_ab,start_time,end_time,orbit_type):
+    """
+    Use the ESA API to find the latest orbit file.
+    Input example: 'A', '20180810T224719', '20180810T224816', 'AUX_POEORB'
+    Returns a python dictionary, with important elements 'product_type', 'physical_name', and 'remote_url'.
+    """
+    # original credit to https://github.com/asjohnston-asf/s1qc-orbit-api/blob/master/src/main.py
+    # modified by E. Lindsey, May 2020
+
+    platform = f'S1{sat_ab}'
+
+    params = {
+        'product_type': orbit_type,
+        'product_name__startswith': platform,
+        'validity_start__lt': start_time,
+        'validity_stop__gt': end_time,
+        'ordering': '-creation_date',
+        'page_size': '1',
+    }
+
+    response = requests.get(url='https://qc.sentinel1.eo.esa.int/api/v1/', params=params)
+    response.raise_for_status()
+    qc_data = response.json()
+
+    orbit = None
+    if qc_data['results']:
+        orbit = qc_data['results'][0]
+    return orbit
+
+def get_latest_orbit_file(sat_ab,imagestart,imageend,s1_orbit_dirs,download_missing=True,skip_notfound=True):
     """
     Orbit files have 3 dates: production date, start and end range. Image files have 2 dates: start, end.
     We want to find the latest file (most recent production) whose range includes the range of the image.
+    If none is found, look for the file from ESA by default.
     Return string includes absolute path to file.
     """
     eoflist=[]
     eofprodlist=[]
+    latest_eof=None
 
     # add one hour to the image start/end times to ensure we have enough coverage in the orbit file
     imagestart_pad = imagestart - datetime.timedelta(hours=0.5)
@@ -123,8 +182,35 @@ def get_latest_orbit_file(sat_ab,imagestart,imageend,s1_orbit_dirs,skip_notfound
     if eoflist:
         #get the most recently produced valid EOF
         latest_eof = eoflist[eofprodlist.index(max(eofprodlist))]
-        
-    else:
+
+    elif download_missing:
+        #no EOF found locally, download from ESA
+        print('No matching orbit file found locally, downloading from ESA')
+        tstart=imagestart_pad.strftime('%Y%m%dT%H%M%S')
+        tend=imageend_pad.strftime('%Y%m%dT%H%M%S')
+
+        orbit = get_latest_orbit_esa_api(sat_ab,tstart,tend,'AUX_POEORB')
+        if not orbit:
+            orbit = get_latest_orbit_esa_api(sat_ab,tstart,tend,'AUX_RESORB')        
+
+        if orbit:
+            # set download location to one of the user-supplied folders. We assume the user would either supply one folder, or two folders with 'resorb' coming second.
+            if len(s1_orbit_dirs)>1 and orbit['product_type'] == 'AUX_RESORB':
+                target_dir=s1_orbit_dirs[1]
+            else:
+                target_dir=s1_orbit_dirs[0]
+
+            # compute the full path to the file
+            latest_eof = os.path.abspath(os.path.join(target_dir,orbit['physical_name']))
+
+            # download the file
+            remote_url = orbit['remote_url']
+            response = requests.get(url=remote_url)
+            response.raise_for_status()
+            with open(latest_eof, 'wb') as f:
+                f.write(response.content)
+
+    if not latest_eof or not os.path.exists(latest_eof):
         if skip_notfound:
             print("Warning: No matching orbit file found for Sentinel-1%s during time %s to %s in %s - skipping"%(sat_ab,imagestart_pad,imageend_pad,s1_orbit_dirs))
             return None
@@ -212,12 +298,49 @@ def write_ll_pins(fname, lons, lats, asc_desc):
     gmtsar_func.write_list(fname,lonlats)
 
 
+def create_frame_tops_parallel(safelist,eof,llpins,logfile,workdir):
+    """
+    Run the GMTSAR command create_frame_tops.csh to combine bursts within the given latitude bounds
+    Modified version enables running in parallel by running in a temporary subdirectory.
+    """
+
+    # to run in parallel, we have to do everything inside a unique directory
+    # this is because GMTSAR uses constant temp filenames that will collide with each other
+    # in this case, the colliding name is the temp folder 'new.SAFE'
+    os.makedirs(workdir, exist_ok=False)
+    oldcwd=os.getcwd()
+    os.chdir(workdir)
+
+    # write file list to the current directory
+    gmtsar_func.write_list('SAFE.list', safelist)
+
+    # copy orbit file to the current directory, required for create_frame_tops.csh
+    shutil.copy2(eof,os.getcwd())
+    local_eof=os.path.basename(eof)
+
+    # copy llpins file to current directory
+    shutil.copy2(os.path.join(oldcwd,llpins),llpins)
+
+    # create GMTSAR command and run it
+    cmd = '/home/share/insarscripts/automate/gmtsar_functions/create_frame_tops.csh SAFE.list %s %s 1 %s'%(local_eof, llpins, logfile)
+    gmtsar_func.run_command(cmd,logging=True)
+
+    # copy result back to main directory
+    result_safe=glob.glob('S1*SAFE')[0]
+    shutil.move(result_safe,os.path.join(oldcwd,result_safe))
+    shutil.move(logfile,oldcwd)
+
+    # clean up
+    os.chdir(oldcwd)
+    shutil.rmtree(workdir)
+
 def create_frame_tops(safelist,eof,llpins,logfile):
     """
     Run the GMTSAR command create_frame_tops.csh to combine bursts within the given latitude bounds
+    Note, this command cannnot be run in parallel. Use 'create_frame_tops_parallel' instead.
     """
     # copy orbit file to the current directory, required for create_frame_tops.csh
-    print(eof)
+    #print(eof)
     shutil.copy2(eof,os.getcwd())
     local_eof=os.path.basename(eof)
 
