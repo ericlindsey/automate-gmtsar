@@ -79,7 +79,6 @@ if __name__ == '__main__':
     align_file=config.get('py-config','align_file')
     intf_file=config.get('py-config','intf_file')
     restart=config.getboolean('py-config','restart')
-    mode=config.get('py-config','mode') 
 
     # moved s1_specific variables over to gmtsar_func.py using the dictionary py_config
     #
@@ -92,8 +91,6 @@ if __name__ == '__main__':
         print('Running gmtsar_app.py:')
         if args.mpi:
             print('  Using MPI')
-        else:
-            print('  Not using MPI')
         print('  config file:',args.config,'contains the following options')    
         print(config.write(sys.stdout))
     
@@ -106,11 +103,6 @@ if __name__ == '__main__':
     if intf_file == '':
         intf_file = 'intf.in'
     
-    # only valid option for mode is 'scan'    
-    if mode != '' and mode != 'scan':
-        print('warning: invalid option mode = %s in config file, using blank'%mode)
-        mode = ''
-
     # if master specified in the config file disagrees with existing data.in, we must re-do the pre-processing.
     if master and startstage > 1 and os.path.isfile('raw/data.in'):
         #check master in data.in
@@ -201,7 +193,7 @@ if __name__ == '__main__':
                     os.remove(align_file)
             if not os.path.isfile(align_file) or not os.path.isdir('logs_align') or not os.path.isfile('SLC/%s.SLC'%master):
                 print('running setup_align: creating a default alignment list with all scenes aligned to master.')
-                gmtsar_func.setup_align(SAT,dataDotIn,py_config,align_file,mode,logtime)
+                gmtsar_func.setup_align(SAT,dataDotIn,py_config,align_file,logtime)
             cmds = gmtsar_func.get_align_commands(align_file)
             numalign=len(cmds)
             print('running %d alignments from %s using %d processors.'%(numalign,align_file,numproc))

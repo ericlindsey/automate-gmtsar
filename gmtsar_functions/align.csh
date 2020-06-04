@@ -54,7 +54,7 @@ echo ""
   
   else
 
-    xcorr $2.PRM $3.PRM -xsearch 64 -ysearch 64 -nx 32 -ny 64
+    xcorr $2.PRM $3.PRM -xsearch 64 -ysearch 128 -nx 32 -ny 64
     fitoffset.csh 2 2 freq_xcorr.dat 18 >> $3.PRM
 
   endif 

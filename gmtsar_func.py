@@ -8,7 +8,7 @@ Created on Mon Feb 27 11:31:38 2017
 """
 
 # python-standard modules
-import os,sys,errno,subprocess,time,itertools,shutil,glob,configparser
+import os,sys,errno,subprocess,time,itertools,shutil,glob,configparser,distutils.util
 #import matplotlib.pyplot as plt
 import numpy as np
 
@@ -294,7 +294,7 @@ def get_orbit_index(SAT,stem):
 
 
 # setup the list of alignment commands to be run. Simple version: all scenes to master; master is assumed to be first in list
-def setup_align(SAT,dataDotIn,py_config,align_file,scan='',logtime=''):
+def setup_align(SAT,dataDotIn,py_config,align_file,logtime=''):
     # create align.in with list of commands, and focus master image
     alignlist=[]
     if SAT=='S1':
@@ -304,6 +304,11 @@ def setup_align(SAT,dataDotIn,py_config,align_file,scan='',logtime=''):
     else:
         command = cshpath+'/align_batch.csh'
         orbit_indx=get_orbit_index(SAT,dataDotIn[0])
+        scansar=distutils.util.strtobool(py_config['scansar'])
+        if scansar:
+            scan='scan'
+        else:
+            scan=''
         # make a log directory
         mkdir_p('logs_align')
         for i in range(1,len(dataDotIn)):

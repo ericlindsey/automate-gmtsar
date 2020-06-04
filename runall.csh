@@ -34,7 +34,7 @@ foreach F ( $subswaths )
   endif
 
   #run gmtsar_app
-  qsub ../run_gmtsar_app.pbs -v config=$config
+  qsub -v config=$config ../run_gmtsar_app.pbs
 
   cd ..
 end
