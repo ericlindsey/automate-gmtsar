@@ -22,10 +22,10 @@
   gmt set COLOR_MODEL = hsv
   gmt set PROJ_LENGTH_UNIT = inch
 
-  if ($#argv != 5 && $#argv != 7) then
+  if ($#argv != 4 && $#argv != 5 && $#argv != 6 && $#argv != 7) then
 errormessage:
     echo ""
-    echo "Usage: filter.csh master.PRM slave.PRM filter decimation alpha psize [rng_dec azi_dec]"
+    echo "Usage: filter.csh master.PRM slave.PRM filter decimation [psize] [rng_dec azi_dec]"
     echo ""
     echo " Apply gaussian filter to amplitude and phase images."
     echo " "
@@ -45,7 +45,6 @@ errormessage:
   set filter4 = $sharedir/filters/xdir
   set filter5 = $sharedir/filters/ydir
   set dec  = $4
-  set psize  = $5
   set az_lks = 4 
   set PRF = `grep PRF *.PRM | awk 'NR == 1 {printf("%d", $3)}'`
   if( $PRF < 1000 ) then
@@ -80,13 +79,43 @@ errormessage:
     exit 1
   endif
 #
+# set az_lks and dec_rng to 1 for odd decimation
+#
+  if($#argv == 6) then
+    set jud = `echo $6 | awk '{if($1%2 == 0) print 1;else print 0}'`
+    if ($jud == 0) then 
+      set az_lks = 1
+    endif
+    set jud = `echo $5 | awk '{if($1%2 == 0) print 1;else print 0}'`
+    if ($jud == 0) then 
+      set dec_rng = 1 
+    endif
+  endif
+#
+# default value of psize
+#
+  set psize = 32
+
+#
 #  make the custom filter2 and set the decimation
 #
   make_gaussian_filter $1 $dec_rng $az_lks $3 > ijdec
   set filter2 = gauss_$3
   set idec = `cat ijdec | awk -v dc="$dec" '{ print dc*$1 }'`
   set jdec = `cat ijdec | awk -v dc="$dec" '{ print dc*$2 }'`
+  if($#argv == 5) then
+    # only psize is given
+    set psize  = $5
+  endif
+  if($#argv == 6) then
+    # only idec and jdec are given
+    set idec = `echo $6 $az_lks | awk '{printf("%d",$1/$2)}'`
+    set jdec = `echo $5 $dec_rng | awk '{printf("%d",$1/$2)}'`
+    echo "setting range_dec = $5, azimuth_dec = $6"
+  endif
   if($#argv == 7) then
+    # both psize and idec/jdec are given
+    set psize  = $5
     set idec = `echo $7 $az_lks | awk '{printf("%d",$1/$2)}'`
     set jdec = `echo $6 $dec_rng | awk '{printf("%d",$1/$2)}'`
     echo "setting range_dec = $6, azimuth_dec = $7"
@@ -104,21 +133,28 @@ errormessage:
   rm amp2_tmp.grd
 #
 # filter the real and imaginary parts of the interferogram
-# also compute gradients
 #
   echo "filtering interferogram..."
   conv $az_lks $dec_rng $filter1 real.grd=bf real_tmp.grd=bf
   conv $idec $jdec $filter2 real_tmp.grd=bf realfilt.grd
-#  conv $dec $dec $filter4 real_tmp.grd xreal.grd
-#  conv $dec $dec $filter5 real_tmp.grd yreal.grd
-  rm real_tmp.grd 
-  rm real.grd
   conv $az_lks $dec_rng $filter1 imag.grd=bf imag_tmp.grd=bf
   conv $idec $jdec $filter2 imag_tmp.grd=bf imagfilt.grd
-#  conv $dec $dec $filter4 imag_tmp.grd ximag.grd
-#  conv $dec $dec $filter5 imag_tmp.grd yimag.grd
-  rm imag_tmp.grd 
-  rm imag.grd
+#
+# also compute gradients and filter them the same way
+#
+# echo "filtering for phase gradient . . "
+# conv 1 1 $filter4 real_tmp.grd xt.grd=bf
+# conv 1 1 $filter5 real_tmp.grd yt.grd=bf
+# conv $idec $jdec $filter2 xt.grd=bf xreal.grd
+# conv $idec $jdec $filter2 yt.grd=bf yreal.grd
+# rm real_tmp.grd 
+# rm xt.grd yt.grd
+# conv 1 1 $filter4 imag_tmp.grd xt.grd=bf
+# conv 1 1 $filter5 imag_tmp.grd yt.grd=bf
+# conv $idec $jdec $filter2 xt.grd=bf ximag.grd
+# conv $idec $jdec $filter2 yt.grd=bf yimag.grd
+# rm imag_tmp.grd 
+# rm xt.grd yt.grd
 #
 # form amplitude image
 #
@@ -126,11 +162,12 @@ errormessage:
   gmt grdmath realfilt.grd imagfilt.grd HYPOT  = amp.grd 
   gmt grdmath amp.grd 0.5 POW FLIPUD = display_amp.grd 
   set AMAX = `gmt grdinfo -L2 display_amp.grd | grep stdev | awk '{ print 3*$5 }'`
-  set boundR = `gmt grdinfo display_amp.grd -C | awk '{print ($3-$2)/4}'`
-  set boundA = `gmt grdinfo display_amp.grd -C | awk '{print ($5-$4)/4}'`
   gmt grd2cpt display_amp.grd -Z -D -L0/$AMAX -Cgray > display_amp.cpt
   echo "N  255   255   254" >> display_amp.cpt
-  gmt grdimage display_amp.grd -Cdisplay_amp.cpt $scale -B"$boundR":Range:/"$boundA":Azimuth:WSen -X1.3 -Y3 -P > display_amp.ps
+  gmt grdimage display_amp.grd -Cdisplay_amp.cpt $scale -Bxaf+lRange -Byaf+lAzimuth -BWSen -X1.3i -Y3i -P -K > display_amp.ps
+  gmt psscale -Rdisplay_amp.grd -J -DJTC+w5i/0.2i+h+ef -Cdisplay_amp.cpt -Bx0+l"Amplitude (histogram equalized)" -O >> display_amp.ps
+  gmt psconvert -Tf -P -Z display_amp.ps
+  #echo "Amplitude map: display_amp.pdf"
 #
 # form the correlation
 #
@@ -141,16 +178,28 @@ errormessage:
   conv 1 1 $filter3 tmp2.grd=bf corr.grd
   gmt makecpt -T0./.8/0.1 -Cgray -Z -N > corr.cpt
   echo "N  255   255   254" >> corr.cpt
-  gmt grdimage corr.grd $scale -Ccorr.cpt -B"$boundR":Range:/"$boundA":Azimuth:WSen -X1.3 -Y3 -P -K > corr.ps
-  gmt psscale -Dx1.3/-1.5+w5/0.2+h+e -Ccorr.cpt -B0.2:correlation: -O >> corr.ps
+  gmt grdimage corr.grd $scale -Ccorr.cpt -Bxaf+lRange -Byaf+lAzimuth -BWSen -X1.3i -Y3i -P -K > corr.ps
+  gmt psscale -Rcorr.grd -J -DJTC+w5i/0.2i+h+ef -Ccorr.cpt -Baf+lCorrelation -O >> corr.ps
+  gmt psconvert -Tf -P -Z corr.ps
+  #echo "Correlation map: corr.pdf"
 #
 # form the phase 
 #
   echo "making phase..."
   gmt grdmath imagfilt.grd realfilt.grd ATAN2 mask.grd MUL FLIPUD = phase.grd
   gmt makecpt -Crainbow -T-3.15/3.15/0.1 -Z -N > phase.cpt
-  gmt grdimage phase.grd $scale -B"$boundR":Range:/"$boundA":Azimuth:WSen -Cphase.cpt -X1.3 -Y3 -P -K > phase.ps
-  gmt psscale -Dx1.3/-1.5+w5/0.2+h+e -Cphase.cpt -B1.57:"phase, rad": -O >> phase.ps
+  gmt grdimage phase.grd $scale -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phase.ps
+  gmt psscale -Rphase.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -B1.57+l"Phase" -By+lrad -O >> phase.ps
+  gmt psconvert -Tf -P -Z phase.ps
+  #echo "Phase map: phase.pdf"
+#
+# compute the solid earth tide
+# uncomment lines with ##
+#
+##ln -s ../../topo/dem.grd .
+##tide_correction.csh $1 $2 dem.grd
+##mv tide.grd tmp.grd
+##gmt grdsample tmp.grd -Rimagfilt.grd -Gtide.grd
 #
 #  make the Werner/Goldstein filtered phase
 #
@@ -160,22 +209,22 @@ errormessage:
   gmt grdedit filtphase.grd `gmt grdinfo mask.grd -I- --FORMAT_FLOAT_OUT=%.12lg` 
   gmt grdmath filtphase.grd mask.grd MUL FLIPUD = phasefilt.grd
   rm filtphase.grd
-  gmt grdimage phasefilt.grd $scale -B"$boundR":Range:/"$boundA":Azimuth:WSen -Cphase.cpt -X1.3 -Y3 -P -K > phasefilt.ps
-  gmt psscale -Dx1.3/-1.5+w5/0.2+h+e -Cphase.cpt -B1.57:"phase, rad": -O >> phasefilt.ps
+  gmt grdimage phasefilt.grd $scale -Bxaf+lRange -Byaf+lAzimuth -BWSen -Cphase.cpt -X1.3i -Y3i -P -K > phasefilt.ps
+  gmt psscale -Rphasefilt.grd -J -DJTC+w5i/0.2i+h -Cphase.cpt -Bxa1.57+l"Phase" -By+lrad -O >> phasefilt.ps
+  gmt psconvert -Tf -P -Z phasefilt.ps
+  #echo "Filtered phase map: phasefilt.pdf"
 # 
 #  form the phase gradients
 #
-#  echo "making phase gradient..."
-#  gmt grdmath amp.grd 2. POW = amp_pow.grd
-#  gmt grdmath realfilt.grd ximag.grd MUL imagfilt.grd xreal.grd MUL SUB amp_pow.grd DIV mask.grd MUL FLIPUD = xphase.grd
-#  gmt grdmath realfilt.grd yimag.grd MUL imagfilt.grd yreal.grd MUL SUB amp_pow.grd DIV mask.grd MUL FLIPUD = yphase.grd 
-#  gmt makecpt -Cgray -T-0.7/0.7/0.1 -Z -N > phase_grad.cpt
-#  echo "N  255   255   254" >> phase_grad.cpt
-#  gmt grdimage xphase.grd $scale -Cphase_grad.cpt -X.2 -Y.5 -P > xphase.ps
-#  gmt grdimage yphase.grd $scale -Cphase_grad.cpt -X.2 -Y.5 -P > yphase.ps
+# echo "making phase gradient..."
+# gmt grdmath amp.grd 2. POW = amp_pow.grd
+# gmt grdmath realfilt.grd ximag.grd MUL imagfilt.grd xreal.grd MUL SUB amp_pow.grd DIV mask.grd MUL FLIPUD = xphase.grd
+# gmt grdmath realfilt.grd yimag.grd MUL imagfilt.grd yreal.grd MUL SUB amp_pow.grd DIV mask.grd MUL FLIPUD = yphase.grd 
 #
   mv mask.grd tmp.grd 
   gmt grdmath tmp.grd FLIPUD = mask.grd
 #
 # delete files
- rm tmp.grd tmp2.grd ximag.grd yimag.grd xreal.grd yreal.grd 
+ rm tmp.grd tmp2.grd 
+ rm real.grd imag.grd
+ rm ximag.grd yimag.grd xreal.grd yreal.grd 
