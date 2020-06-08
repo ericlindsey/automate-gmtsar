@@ -35,6 +35,6 @@
     cp ../raw/$master.SLC . 
   endif
   
-  update_PRM.csh $master.PRM SLC_file $master.SLC
+  update_PRM $master.PRM SLC_file $master.SLC
   cd ..
 

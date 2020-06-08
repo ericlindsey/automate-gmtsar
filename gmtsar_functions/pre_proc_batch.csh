@@ -181,9 +181,9 @@ unset noclobber
     #
     set min_lines = `grep num_lines *.PRM | awk '{if(min==""){min=$3}; if($3<min) {min=$3}} END {print min}'`
     echo "set num_lines to "$min_lines
-    update_PRM.csh $master.PRM num_lines $min_lines
-    update_PRM.csh $master.PRM num_valid_az $min_lines
-    update_PRM.csh $master.PRM nrows $min_lines
+    update_PRM $master.PRM num_lines $min_lines
+    update_PRM $master.PRM num_valid_az $min_lines
+    update_PRM $master.PRM nrows $min_lines
     #
     #calculate the SC_vel and SC_height
     #set the doppler to be zero
@@ -235,9 +235,9 @@ unset noclobber
         cp $slave.PRM $slave.PRM00
       endif
       echo "set num_lines to "$min_lines
-      update_PRM.csh $slave.PRM num_lines $min_lines
-      update_PRM.csh $slave.PRM num_valid_az $min_lines
-      update_PRM.csh $slave.PRM nrows $min_lines
+      update_PRM $slave.PRM num_lines $min_lines
+      update_PRM $slave.PRM num_valid_az $min_lines
+      update_PRM $slave.PRM nrows $min_lines
       #calculate the SC_vel and SC_height
       #set the doppler to be zero
       echo "calculate SC_vel and SC_height, and set doppler to be zero"
@@ -268,14 +268,14 @@ unset noclobber
           ALOS_fbd2fbs_SLC $slave.PRM $slave"_"FBS.PRM
           echo "Overwriting the old slave image"
           mv $slave"_"FBS.PRM $slave.PRM
-          update_PRM.csh $slave.PRM input_file $slave.SLC
+          update_PRM $slave.PRM input_file $slave.SLC
           mv $slave"_"FBS.SLC $slave.SLC
         else if  ($t == 0.5) then
           echo "Convert the master image from FBD to FBS mode"
           ALOS_fbd2fbs_SLC $master.PRM $master"_"FBS.PRM
           echo "Overwriting the old master image"
           mv $master"_"FBS.PRM $master.PRM
-          update_PRM.csh $master.PRM input_file $master.SLC
+          update_PRM $master.PRM input_file $master.SLC
           mv $master"_"FBS.SLC $master.SLC
         else
           echo "The range sampling rate for master and slave images are not convertible"
@@ -300,7 +300,7 @@ unset noclobber
           ALOS_fbd2fbs $slave.PRM $slave"_"FBS.PRM
           echo "Overwriting the old slave image"
           mv $slave"_"FBS.PRM $slave.PRM
-          update_PRM.csh $slave.PRM input_file $slave.raw
+          update_PRM $slave.PRM input_file $slave.raw
           mv $slave"_"FBS.raw $slave.raw
         else if  ($t == 0.5) then
           echo "Error: Must use FBS mode image as master"

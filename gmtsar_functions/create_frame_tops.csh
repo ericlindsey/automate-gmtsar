@@ -26,7 +26,7 @@
     echo ""
     exit 1
   endif
-  
+
   if ($#argv == 3) then
     set mode = `echo "vv"`
   else 
