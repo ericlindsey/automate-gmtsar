@@ -120,8 +120,8 @@
       #
       #  need to add the SLC_file name to the master PRM's
       #
-      update_PRM.csh $master.PRM SLC_file $master.SLC
-      update_PRM.csh $supermaster.PRM SLC_file $supermaster.SLC
+      update_PRM $master.PRM SLC_file $master.SLC
+      update_PRM $supermaster.PRM SLC_file $supermaster.SLC
       #
       #  now run align.csh
       #
