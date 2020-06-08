@@ -42,7 +42,23 @@ echo ""
 
   set mode = $5
   if ($mode == scan) then
+
+    cp $2.PRM $2.PRM0
+    cp $3.PRM $3.PRM0
+
+    # update slave.PRM 
+    echo "update slave.PRM"
+    set RSHIFT = `SAT_baseline $2.PRM $3.PRM | grep rshift | awk '{print $3}'`
+    set ASHIFT = `SAT_baseline $2.PRM $3.PRM | grep ashift | awk '{print $3}'`
+    update_PRM $3.PRM rshift $RSHIFT
+    update_PRM $3.PRM ashift $ASHIFT
+
+    echo "correlate master and slave to find offset parameters"
     xcorr $2.PRM $3.PRM -xsearch 64 -ysearch 64 -nx 32 -ny  128
+
+    mv $3.PRM junk.PRM
+    cp $2.PRM0 $2.PRM
+    grep -v shift < junk.PRM > $3.PRM
 
     awk '{print $4}' < freq_xcorr.dat > tmp.dat
     set amedian = `sort -n tmp.dat | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }'`
@@ -54,7 +70,7 @@ echo ""
   
   else
 
-    xcorr $2.PRM $3.PRM -xsearch 64 -ysearch 128 -nx 32 -ny 64
+    xcorr $2.PRM $3.PRM -xsearch 64 -ysearch 64 -nx 32 -ny 64
     fitoffset.csh 2 2 freq_xcorr.dat 18 >> $3.PRM
 
   endif 
@@ -88,7 +104,7 @@ else
     echo "focussing master"
     sarp.csh $2.PRM 
   else
-    update_PRM.csh $2.PRM SLC_file $2.SLC
+    update_PRM $2.PRM SLC_file $2.SLC
   endif
 #
 # focus the slave image
@@ -111,25 +127,29 @@ else
   cp $2.PRM $2.PRM0
   cp $3.PRM $3.PRM0
   if($#argv == 4) then
-    set RSHIFT = `$1_baseline $4.PRM $3.PRM | grep rshift | awk '{print $3}'`
-    set ASHIFT = `$1_baseline $4.PRM $3.PRM | grep ashift | awk '{print $3}'`
+    #set RSHIFT = `$1_baseline $4.PRM $3.PRM | grep rshift | awk '{print $3}'`
+    #set ASHIFT = `$1_baseline $4.PRM $3.PRM | grep ashift | awk '{print $3}'`
+    set RSHIFT = `SAT_baseline $4.PRM $3.PRM | grep rshift | awk '{print $3}'`
+    set ASHIFT = `SAT_baseline $4.PRM $3.PRM | grep ashift | awk '{print $3}'`
 #
 #   use the PRF of the supermaster in the surrogate master
 #
     set PRF = `grep PRF $4.PRM | awk '{print $3}'`
-    update_PRM.csh $2.PRM PRM $PRF
+    update_PRM $2.PRM PRF $PRF
   else
-    set RSHIFT = `$1_baseline $2.PRM $3.PRM | grep rshift | awk '{print $3}'`
-    set ASHIFT = `$1_baseline $2.PRM $3.PRM | grep ashift | awk '{print $3}'`
+    #set RSHIFT = `$1_baseline $2.PRM $3.PRM | grep rshift | awk '{print $3}'`
+    #set ASHIFT = `$1_baseline $2.PRM $3.PRM | grep ashift | awk '{print $3}'`
+    set RSHIFT = `SAT_baseline $2.PRM $3.PRM | grep rshift | awk '{print $3}'`
+    set ASHIFT = `SAT_baseline $2.PRM $3.PRM | grep ashift | awk '{print $3}'`
   endif
-  update_PRM.csh $3.PRM rshift $RSHIFT
-  update_PRM.csh $3.PRM ashift $ASHIFT
+  update_PRM $3.PRM rshift $RSHIFT
+  update_PRM $3.PRM ashift $ASHIFT
   echo "align.csh"
   echo "correlate master and slave to find offset parameters"
   if( $SAT == "ERS") then
-    xcorr $2.PRM $3.PRM -xsearch 128 -ysearch 128
+    xcorr $2.PRM $3.PRM -xsearch 128 -ysearch 128 -nx 20 -ny 50
   else
-    xcorr $2.PRM $3.PRM -xsearch 64 -ysearch 64
+    xcorr $2.PRM $3.PRM -xsearch 128 -ysearch 256 -nx 20 -ny 50
   endif
 #
   mv $3.SLC $3.SLC0
