@@ -322,7 +322,8 @@ def create_frame_tops_parallel(safelist,eof,llpins,logfile,workdir):
     shutil.copy2(os.path.join(oldcwd,llpins),llpins)
 
     # create GMTSAR command and run it
-    cmd = '/home/share/insarscripts/automate/gmtsar_functions/create_frame_tops.csh SAFE.list %s %s 1 %s'%(local_eof, llpins, logfile)
+    #cmd = '/home/share/insarscripts/automate/gmtsar_functions/create_frame_tops.csh SAFE.list %s %s 1 %s'%(local_eof, llpins, logfile)
+    cmd = 'create_frame_tops.csh SAFE.list %s %s 1 %s'%(local_eof, llpins, logfile)
     gmtsar_func.run_command(cmd,logging=True)
 
     # copy result back to main directory
