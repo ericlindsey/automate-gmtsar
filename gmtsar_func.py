@@ -8,7 +8,9 @@ Created on Mon Feb 27 11:31:38 2017
 """
 
 # python-standard modules
-import os,sys,errno,subprocess,time,itertools,shutil,glob,configparser,distutils.util #import matplotlib.pyplot as plt import numpy as np
+import os,sys,errno,subprocess,time,itertools,shutil,glob,configparser,distutils.util 
+import matplotlib.pyplot as plt
+import numpy as np
 
 # user-defined
 import s1_func
@@ -91,7 +93,8 @@ def get_master_short_name(SAT,scene):
         # We want the corresponding scene name (e.g. S1A20170629_ALL_F3) from a line of data.in, which looks like xml:eof
         #we look for PRM files in raw/, then crop off the 'raw/' and '.PRM' to get the name.        
         mydate=s1_func.get_datestring_from_xml(scene)
-        scenename=glob.glob('raw/*%s_ALL_F?.PRM'%mydate)[0].split('/')[-1].split('.')[0]
+        filename=glob.glob('raw/*%s_ALL_F?.PRM'%mydate)[0]
+        scenename=os.path.splitext(os.path.basename(filename))[0]
         return scenename
     else:
         #most satellites are simple
@@ -326,7 +329,7 @@ def get_intf_commands(SAT,dataDotIn,intf_file,intf_config,logtime):
     # make a log directory
     mkdir_p('logs_intf')
     # load baseline table
-    table = load_baseline_table()
+    table = load_baseline_table(SAT)
     #get list of scenes. another S1 special case
     command,scenelist,satname = get_intf_scenelist(SAT,table,dataDotIn)
     # create lists/dictionaries from data.in
@@ -360,7 +363,7 @@ def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False):
     skip_finished=config.getboolean('py-config','skip_finished')    
     intf_min_connectivity=config.getint('py-config','intf_min_connectivity')
     # load baseline table
-    table = load_baseline_table()
+    table = load_baseline_table(SAT)
     #get list of scenes. another S1 special case
     command,scenelist,satname = get_intf_scenelist(SAT,table,dataDotIn)
     # create lists/dictionaries from data.in
@@ -486,14 +489,22 @@ def plot_created_intfs(max_timespan, max_baseline, SAT):
 #     print('created figure %s'%image_fname)
     
 
-def load_baseline_table():
+def load_baseline_table(SAT):
     # load baseline table
     baselinetable='raw/baseline_table.dat'
     if os.path.isfile(baselinetable):
         table=np.loadtxt(baselinetable,usecols=(0,1,2,4),dtype={'names': ('orbit','yearday','day','bperp'), 'formats': ('S100','f16', 'f4', 'f16')})    
+        if SAT == 'S1':
+            # for this satellite, the first entry of baseline_table is now the XML file and not the 'short' PRM name. 
+            # we have to replace that value with the short PRM name for the 'orbit' entry in the dictionary.
+            for item in table:
+                xmlname = item['orbit'].astype(str)
+                shortname = get_master_short_name(SAT,xmlname)
+                item['orbit']=shortname
     else:
         print('did not find baseline table!')
         sys.exit(1)
+    print(table)
     return table
 
 
