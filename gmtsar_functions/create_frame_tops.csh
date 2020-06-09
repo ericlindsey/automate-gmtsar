@@ -84,7 +84,7 @@
   set ll2 = `awk NR==2'{print $0}' ../$tps`
 
   set tmpazi = `echo "$ll1 0" | SAT_llt2rat tmp1.PRM 1 | awk '{print $2}'`
-  /home/share/insarscripts/automate/gmtsar_functions/shift_atime_PRM.csh tmp1.PRM $tmpazi
+  shift_atime_PRM.csh tmp1.PRM $tmpazi
   set azi1 = `echo "$ll1 0" | SAT_llt2rat tmp1.PRM 1 | awk '{printf("%d",$2+0.5 + '$tmpazi')}'`
   set azi2 = `echo "$ll2 0" | SAT_llt2rat tmp1.PRM 1 | awk '{printf("%d",$2+0.5 + '$tmpazi')}'`
 
@@ -131,7 +131,7 @@
   set ll2 = `awk NR==2'{print $0}' ../$tps`
 
   set tmpazi = `echo "$ll1 0" | SAT_llt2rat tmp1.PRM 1 | awk '{print $2}'`
-  /home/share/insarscripts/automate/gmtsar_functions/shift_atime_PRM.csh tmp1.PRM $tmpazi
+  shift_atime_PRM.csh tmp1.PRM $tmpazi
   set azi1 = `echo "$ll1 0" | SAT_llt2rat tmp1.PRM 1 | awk '{printf("%d",$2+0.5 + '$tmpazi')}'`
   set azi2 = `echo "$ll2 0" | SAT_llt2rat tmp1.PRM 1 | awk '{printf("%d",$2+0.5 + '$tmpazi')}'`
 
@@ -178,7 +178,7 @@
   set ll2 = `awk NR==2'{print $0}' ../$tps`
 
   set tmpazi = `echo "$ll1 0" | SAT_llt2rat tmp1.PRM 1 | awk '{print $2}'`
-  /home/share/insarscripts/automate/gmtsar_functions/shift_atime_PRM.csh tmp1.PRM $tmpazi
+  shift_atime_PRM.csh tmp1.PRM $tmpazi
   set azi1 = `echo "$ll1 0" | SAT_llt2rat tmp1.PRM 1 | awk '{printf("%d",$2+0.5 + '$tmpazi')}'`
   set azi2 = `echo "$ll2 0" | SAT_llt2rat tmp1.PRM 1 | awk '{printf("%d",$2+0.5 + '$tmpazi')}'`
 
