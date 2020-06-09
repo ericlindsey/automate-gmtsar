@@ -125,13 +125,9 @@
       #
       #  now run align.csh
       #
-     #align.csh $SAT $master $slave $supermaster $mode
-     
-# hard-coded paths during testing
-#/Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/align.csh $SAT $master $slave $supermaster $mode
-#/home/elindsey/insarscripts/automate/gmtsar_functions/align.csh $SAT $master $slave $supermaster $mode
-/home/share/insarscripts/automate/gmtsar_functions/align.csh $SAT $master $slave $supermaster $mode
-#/Volumes/dione/data/test_GMTSAR/align.csh $SAT $master $slave $supermaster $mode
+      # Note: a custom version of this command is being used. 
+      # You must set the variable 'GMTSAR_APP' to the location of the 'automate-gmtsar' folder.
+      $GMTSAR_APP/gmtsar_functions/align.csh $SAT $master $slave $supermaster $mode
 
       if (! -f ../$master.SLC) then
         #master was focused for the first time

@@ -8,9 +8,7 @@ Created on Mon Feb 27 11:31:38 2017
 """
 
 # python-standard modules
-import os,sys,errno,subprocess,time,itertools,shutil,glob,configparser,distutils.util
-#import matplotlib.pyplot as plt
-import numpy as np
+import os,sys,errno,subprocess,time,itertools,shutil,glob,configparser,distutils.util #import matplotlib.pyplot as plt import numpy as np
 
 # user-defined
 import s1_func
@@ -43,9 +41,7 @@ import s1_func
 # cshpath=''
 
 ##### Specify your own path to customized c-shell functions (pre_proc_batch.csh, align_batch.csh, topo_ra.csh, intf_batch.csh, snaphu_interp.csh)
-
-cshpath='/home/share/insarscripts/automate/gmtsar_functions'
-#cshpath='/Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/'
+cshpath=os.path.join(os.environ['GMTSAR_APP'], 'gmtsar_functions')
 
 
 ###########################################

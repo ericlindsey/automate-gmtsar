@@ -80,12 +80,6 @@ if __name__ == '__main__':
     intf_file=config.get('py-config','intf_file')
     restart=config.getboolean('py-config','restart')
 
-    # moved s1_specific variables over to gmtsar_func.py using the dictionary py_config
-    #
-    #s1_subswath=config.get('py-config','s1_subswath')
-    # orbit dirs may potentially be a comma-separated list
-    #s1_orbit_dirs=[s.strip() for s in config.get('py-config','s1_orbit_dir').split(',')]
-    
     # print config options
     if args.debug:
         print('Running gmtsar_app.py:')

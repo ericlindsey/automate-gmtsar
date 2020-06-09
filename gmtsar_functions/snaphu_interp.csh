@@ -88,10 +88,10 @@ echo "interpolating masked values using a nearest neighbor algorithm"
 gmt grdmath mask2_patch.grd phase_patch.grd MUL = phase_patch_mask.grd
 #
 # call the python script to do the interpolation (-c option uses 'nccopy -k classic' to convert to netcdf-3)
-#python3.5 /Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/nneigh_interp.py phase_patch_mask.grd -o phase_patch_interp.grd -c
-python3 /home/share/insarscripts/automate/gmtsar_functions/nneigh_interp.py phase_patch_mask.grd -o phase_patch_interp.grd -c
-#python3.5 /home/elindsey/insarscripts/automate/gmtsar_functions/nneigh_interp.py phase_patch_mask.grd -o phase_patch_interp.grd -c
-#python3.5 /Volumes/dione/data/test_GMTSAR/nneigh_interp.py phase_patch_mask.grd -o phase_patch_interp.grd -c
+# Note: a custom version of this command is being used. 
+# You must set the variable 'GMTSAR_APP' to the location of the 'automate-gmtsar' folder.
+python3 $GMTSAR_APP/gmtsar_functions/nneigh_interp.py phase_patch_mask.grd -o phase_patch_interp.grd -c
+
 #
 # convert to input for snaphu
 gmt grd2xyz phase_patch_interp.grd -ZTLf -do0 > phase.in

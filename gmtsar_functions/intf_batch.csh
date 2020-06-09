@@ -116,11 +116,10 @@ if ($stage <= 1) then
   # topo_ra has been moved to its own csh script.
   # no longer dependent on the $SAT parameter!
   #topo_ra.csh $3
-  
-#note, hard-coded paths for testing
-#/home/elindsey/insarscripts/automate/gmtsar_functions/topo_ra.csh $3
-/home/share/insarscripts/automate/gmtsar_functions/topo_ra.csh $3
-#/Volumes/dione/data/test_GMTSAR/topo_ra.csh $3
+
+  # Note: a custom version of this command is being used. 
+  # You must set the variable 'GMTSAR_APP' to the location of the 'automate-gmtsar' folder.
+  $GMTSAR_APP/gmtsar_functions/topo_ra.csh $3
 
 endif
 

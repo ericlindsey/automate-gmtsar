@@ -241,11 +241,9 @@ foreach line (`awk '{print $0}' $1`)
         echo "interp_unwrap is $interp_unwrap"
         echo "topo_assisted_unwrapping is $topo_assisted_unwrapping"
         echo ""
-#note, hard-coded paths for testing
-#set snaphu_cmd = /Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/snaphu_interp.csh
-set snaphu_cmd = /home/share/insarscripts/automate/gmtsar_functions/snaphu_interp.csh
-#set snaphu_cmd = /home/elindsey/insarscripts/automate/gmtsar_functions/snaphu_interp.csh
-#set snaphu_cmd = /Volumes/dione/data/test_GMTSAR/snaphu_interp.csh
+        # Note: a custom version of this command is being used. 
+        # You must set the variable 'GMTSAR_APP' to the location of the 'automate-gmtsar' folder.
+        set snaphu_cmd = "$GMTSAR_APP/gmtsar_functions/snaphu_interp.csh"
       else
         echo "SNAPHU.CSH - START"
         set snaphu_cmd = snaphu.csh
