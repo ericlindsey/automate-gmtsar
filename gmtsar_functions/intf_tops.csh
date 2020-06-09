@@ -190,13 +190,14 @@ foreach line (`awk '{print $0}' $1`)
       if ($psize != "") then
         echo "using psize $psize"
       else
-        echo "using default psize of 16"
-        set psize = 16
+        echo "using default psize of 32"
+        set psize = 32
       endif
     
-# non-default path for testing
-/home/share/insarscripts/automate/gmtsar_functions/filter.csh $ref.PRM $rep.PRM $filter $dec $psize $range_dec $azimuth_dec
-    # filter.csh $ref.PRM $rep.PRM $filter $dec $range_dec $azimuth_dec
+      # Note: a custom version of this command is being used. 
+      # You must set the variable 'GMTSAR_APP' to the location of the 'automate-gmtsar' folder.
+      $GMTSAR_APP/gmtsar_functions/filter.csh $ref.PRM $rep.PRM $filter $dec $psize $range_dec $azimuth_dec
+      # filter.csh $ref.PRM $rep.PRM $filter $dec $range_dec $azimuth_dec
 
     else
       echo ""

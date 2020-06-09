@@ -182,8 +182,9 @@ if ($stage <= 3) then  #note, stage 2 is defined inside the loop
         set psize = 16
       endif
 
-# non-default path for testing
-/home/share/insarscripts/automate/gmtsar_functions/filter.csh $ref.PRM $rep.PRM $filter $dec $psize
+      # Note: a custom version of this command is being used. 
+      # You must set the variable 'GMTSAR_APP' to the location of the 'automate-gmtsar' folder.
+      $GMTSAR_APP/gmtsar_functions/filter.csh $ref.PRM $rep.PRM $filter $dec $psize
       #filter.csh $ref.PRM $rep.PRM $filter $dec
 
       echo "INTF.CSH, FILTER.CSH - END"
@@ -207,7 +208,11 @@ if ($stage <= 3) then  #note, stage 2 is defined inside the loop
       if ($switch_land == 1) then
         if (! -f ../../topo/landmask_ra.grd) then
           cd ../../topo
-          landmask.csh $region_cut
+          if ($SAT == ALOS2) then
+            landmask_ALOS2.csh $region_cut ##26032020
+          else
+            landmask.csh $region_cut
+          endif
           cd ../intf/$ref_id"_"$rep_id
         endif
         ln -s ../../topo/landmask_ra.grd .
@@ -215,11 +220,9 @@ if ($stage <= 3) then  #note, stage 2 is defined inside the loop
       if ($interp_unwrap == 1) then
         #set snaphu_cmd = snaphu_interp.csh
         echo "SNAPHU_INTERP.CSH - START"
-#note, hard-coded paths for testing
-#set snaphu_cmd = /Users/elindsey/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/snaphu_interp.csh
-set snaphu_cmd = /home/share/insarscripts/automate/gmtsar_functions/snaphu_interp.csh
-#set snaphu_cmd = /home/elindsey/insarscripts/automate/gmtsar_functions/snaphu_interp.csh
-#set snaphu_cmd = /Volumes/dione/data/test_GMTSAR/snaphu_interp.csh
+        # Note: a custom version of this command is being used. 
+        # You must set the variable 'GMTSAR_APP' to the location of the 'automate-gmtsar' folder.
+        set snaphu_cmd = "$GMTSAR_APP/gmtsar_functions/snaphu_interp.csh"
       else
         echo "SNAPHU.CSH - START"
         set snaphu_cmd = snaphu.csh

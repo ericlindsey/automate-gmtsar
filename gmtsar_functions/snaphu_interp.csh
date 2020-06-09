@@ -175,9 +175,11 @@ if ($topo_assisted_unwrapping == 1) then
     mv phase_patch.grd phase_patch_orig.grd
     gmt grdmath -V phase_patch_orig.grd topo_atm_component.grd SUB PI ADD 2 PI MUL MOD PI SUB = phase_patch.grd
 
-# re-run unwrapping.
-# this could run snaphu recursively - please don't set the value 0 to 1 in this line!
-/home/share/insarscripts/automate/gmtsar_functions/snaphu_interp.csh $1 $2 2 $4
+    # re-run unwrapping.
+    # this could run snaphu recursively - please don't set the value 0 to 1 in this line!
+    # Note: a custom version of this command is being used. 
+    # You must set the variable 'GMTSAR_APP' to the location of the 'automate-gmtsar' folder.
+    $GMTSAR_APP/gmtsar_functions/snaphu_interp.csh $1 $2 2 $4
 
     # add back the topo correlated noise component
     mv unwrap.grd unwrap_remove_topo.grd
