@@ -2,7 +2,7 @@
 #       $Id$
 #
 # Modified from filter.csh
-# Gun Goldstein filter on phase.grd with user-input parameters
+# Run Goldstein filter on phase.grd with user-input parameters
 #
 #
   alias rm 'rm -f'
