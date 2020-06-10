@@ -215,10 +215,8 @@ unset noclobber
   set FD1 = `grep fd1 $master.PRM | awk '{print $3}'`
   set npatch = `grep num_patch $master.PRM | awk '{print $3}'`
 
-  # Note: a custom version of this command is being used. 
-  # You must set the variable 'GMTSAR_APP' to the location of the 'automate-gmtsar' folder.
-  $GMTSAR_APP/gmtsar_functions/baseline_table.csh $master.PRM $master.PRM >! baseline_table.dat
-  $GMTSAR_APP/gmtsar_functions/baseline_table.csh $master.PRM $master.PRM GMT >! table.gmt
+  baseline_table.csh $master.PRM $master.PRM >! baseline_table.dat
+  baseline_table.csh $master.PRM $master.PRM GMT >! table.gmt
 
 #
 # loop and unpack the slave image using the same earth radius and near range as the master image
@@ -320,10 +318,8 @@ unset noclobber
     endif
 
     #get baselines
-    # Note: a custom version of this command is being used. 
-    # You must set the variable 'GMTSAR_APP' to the location of the 'automate-gmtsar' folder.
-    $GMTSAR_APP/gmtsar_functions/baseline_table.csh $master.PRM $slave.PRM >> baseline_table.dat
-    $GMTSAR_APP/gmtsar_functions/baseline_table.csh $master.PRM $slave.PRM GMT >> table.gmt
+    baseline_table.csh $master.PRM $slave.PRM >> baseline_table.dat
+    baseline_table.csh $master.PRM $slave.PRM GMT >> table.gmt
 
   # end of the loop over slave images
   end
