@@ -58,19 +58,23 @@ cshpath=os.path.join(os.environ['GMTSAR_APP'], 'gmtsar_functions')
 ###########################################
 # Sentinel-1
 #
-def edit_xml_for_s1_preproc():
+def edit_xml_for_s1_preproc(py_config):
     # hand-edit the xml files for each scene
+
     dataDotIn=np.genfromtxt('raw/data.in',dtype='str')
     list_of_xml=[s.split(':')[0] for s in dataDotIn]
+    s1_orbit_dirs=[s.strip() for s in py_config['s1_orbit_dir'].split(',')]
+
     for item in list_of_xml:
         sat_ab=item[0:3] #get sentinel 1A or 1B
+        auxfile=s1_func.get_s1_auxfile(sat_ab,s1_orbit_dirs)
         mydate=s1_func.get_datestring_from_xml(item)
         command='''
                    MYFILE=`ls raw_orig/*%s*/manifest.safe`
                    awk 'NR>1 {print $0}' < $MYFILE > tmp_file
-                   cat raw_orig/*%s*/annotation/%s.xml tmp_file %s/%s-aux-cal.xml > raw/%s.xml
+                   cat raw_orig/*%s*/annotation/%s.xml tmp_file %s > raw/%s.xml
                    rm -f tmp_file
-                '''%(mydate,mydate,item,cshpath,sat_ab,item)
+                '''%(mydate,mydate,item,auxfile,item)
         #note, the aux-cal files (for S1A and S1B) must be manually placed in some folder,
         #for now we use the "cshpath" folder specified above... this is ugly
         run_command(command, logging=False)
@@ -538,7 +542,7 @@ def exec_preproc_command(SAT,py_config,configfile):
         # read parameters from config file:
         s1_subswath=py_config['s1_subswath']
         #modify the XML files for Sentinel
-        edit_xml_for_s1_preproc()
+        edit_xml_for_s1_preproc(py_config)
         #make links and call preproc_batch_tops.csh (no option for esd here, since we won't use it)
         command ='''
                     cleanup.csh raw

@@ -7,7 +7,10 @@ Created on Wed Oct 25 11:45:24 2017
 """
 
 import os,sys,shutil,glob,datetime,multiprocessing,random,string #,subprocess,errno
-import requests,json
+import requests,json,tarfile
+
+#user imports 
+#note that this is a circular import
 import gmtsar_func
 
 ######################## Sentinel-specific functions ########################
@@ -116,6 +119,68 @@ def find_images_by_orbit(dirlist,s1_orbit_dirs,ftype='SAFE'):
             #print('')
     return names, eofs
 
+def get_s1_auxfile(sat_ID, s1_orbit_dirs, force_update=False):
+    # search for the aux cal file in orbit folders. If not found, 
+    # or if force_update = True, download the latest version
+    # from ESA to the first folder given. return full path to the file.
+
+    aux_name=sat_ID.lower() + '-aux-cal.xml' # e.g. 's1a-aux-cal.xml'
+    local_auxfile = None
+
+    #first check for  the existence of a local version
+    for s1_orbit_dir in s1_orbit_dirs:
+        testfile = os.path.join(s1_orbit_dir,aux_name)
+        if os.path.isfile(testfile):
+            if force_update:
+                # delete the file and leave local_auxfile=None alone.
+                # This will cause the block below to trigger a download.
+                os.remove(testfile)
+            else:
+                #found the file, we simply return its location
+                local_auxfile=testfile
+                break
+
+    # if none found, download from ESA
+    if local_auxfile is None:
+        local_auxfile = get_latest_auxcal_esa_api(sat_ID.upper(),target_path=s1_orbit_dirs[0])
+
+    return local_auxfile
+
+def get_latest_auxcal_esa_api(sat_ID, target_path='.'):
+    '''Query ESA for the latest aux file for this satellite and download it.
+    Then extract the xml file and place it in the current directory.'''
+    
+    # query ESA for the latest AUX_CAL file
+    params = {'product_type': 'AUX_CAL', 'product_name__startswith': sat_ID, 'ordering': '-creation_date', 'page_size': '1'}
+    response = requests.get(url='https://qc.sentinel1.eo.esa.int/api/v1/', params=params)
+    response.raise_for_status()
+    qc_data = response.json()
+
+    if qc_data['results']:
+        # convert json to dictionary
+        auxfile = qc_data['results'][0]
+
+        # get remote url and download the file
+        remote_url = auxfile['remote_url']
+        local_filename = os.path.join(target_path,remote_url.split('/')[-1])
+        response = requests.get(url=remote_url)
+        response.raise_for_status()
+        with open(local_filename, 'wb') as f:
+            f.write(response.content)
+        print('downloaded from ESA:',local_filename)
+        
+        # extract the compressed SAFE folder and place the aux_cal file in current directory.
+        with tarfile.open(local_filename) as tf:
+            members=tf.getmembers()
+            for member in members:
+                if '-aux-cal.xml' in member.name:
+                    # strip the directory structure out of the name before extracting
+                    member.name=os.path.basename(member.name)
+                    tf.extract(member,path=target_path)
+                    auxfile_name = os.path.join(target_path,member.name)
+                    break
+        print('extracted file:',auxfile_name)
+    return auxfile_name
 
 def get_latest_orbit_esa_api(sat_ab,start_time,end_time,orbit_type):
     """
