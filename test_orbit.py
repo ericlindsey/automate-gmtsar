@@ -1,6 +1,7 @@
 import requests
 import json
 
+# testing auto-download of orbit files from ESA
 # original credit to https://github.com/asjohnston-asf/s1qc-orbit-api/blob/master/src/main.py
 # modified by E. Lindsey, May 2020
 
