@@ -6,20 +6,12 @@ Created on Wed Oct 25 11:45:24 2017
 @author: elindsey
 """
 
-import os,sys,shutil,glob,datetime,multiprocessing,distutils.util,random,string #,subprocess,errno
+import os,sys,shutil,glob,datetime,multiprocessing,random,string #,subprocess,errno
 import requests,json
 import gmtsar_func
 
 ######################## Sentinel-specific functions ########################
 # This satellite is a real nightmare for my attempts at standardization 
-
-def get_s1_preproc(py_config):
-    s1_use_esd=distutils.util.strtobool(py_config['s1_use_esd'])
-    if s1_use_esd:
-        s1_preproc='preproc_batch_tops_esd.csh'
-    else:
-        s1_preproc='preproc_batch_tops.csh'
-    return s1_preproc
 
 def find_scenes_s1(s1_subswath,s1_orbit_dirs):
     """

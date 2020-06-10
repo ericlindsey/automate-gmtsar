@@ -297,9 +297,13 @@ def setup_align(SAT,dataDotIn,py_config,align_file,logtime=''):
     # create align.in with list of commands, and focus master image
     alignlist=[]
     if SAT=='S1':
-        s1_preproc=s1_func.get_s1_preproc(py_config)
+        if distutils.util.strtobool(py_config['s1_use_esd']):
+            s1_preproc='preproc_batch_tops_esd.csh'
+        else:
+            s1_preproc='preproc_batch_tops.csh'
+        s1_esd_mode = py_config['s1_esd_mode']
         #Sentinel alignment cannot be done in parallel...yet!
-        alignlist=np.append(alignlist,'cd raw ; %s/%s data.in ../topo/dem.grd 2 ; cd .. align_%s.log'%(cshpath,s1_preproc,logtime))
+        alignlist=np.append(alignlist,'cd raw ; %s data.in ../topo/dem.grd 2 %s ; cd .. align_%s.log'%(s1_preproc,s1_esd_mode,logtime))
     else:
         command = cshpath+'/align_batch.csh'
         orbit_indx=get_orbit_index(SAT,dataDotIn[0])
@@ -533,18 +537,17 @@ def exec_preproc_command(SAT,py_config,configfile):
     if SAT == 'S1':
         # read parameters from config file:
         s1_subswath=py_config['s1_subswath']
-        s1_preproc=s1_func.get_s1_preproc(py_config)
         #modify the XML files for Sentinel
         edit_xml_for_s1_preproc()
-        #make links and call preproc_batch_tops.csh
+        #make links and call preproc_batch_tops.csh (no option for esd here, since we won't use it)
         command ='''
                     cleanup.csh raw
                     cd raw
                     ln -s ../raw_orig/*EOF .
                     ln -s ../raw_orig/*/measurement/*iw%s*tiff .
-                    %s/%s data.in ../topo/dem.grd 1 >& preprocess_%s.log
+                    preproc_batch_tops.csh data.in ../topo/dem.grd 1 >& preprocess_%s.log
                     cd ..
-                    '''%(s1_subswath,cshpath,s1_preproc,time.strftime("%Y_%m_%d-%H_%M_%S"))
+                    '''%(s1_subswath,time.strftime("%Y_%m_%d-%H_%M_%S"))
         run_command(command, logging=False)
     elif SAT == 'TSX':
         #almost generic but we don't run cleanup.
