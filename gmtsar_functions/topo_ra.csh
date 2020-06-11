@@ -60,10 +60,6 @@ unset noclobber
   set SC = `grep SC_identity SLC/$master.PRM | awk '{print $3}'`
   set rng_samp_rate = `grep rng_samp_rate SLC/$master.PRM | awk 'NR == 1 {printf("%d", $3)}'`
 
-  if ( $SC == 10 && $shift_topo == 1 ) then
-    echo "Sentinel-1: cannot use shift_topo"
-    set shift_topo = 0
-  endif
 
 # set the range decimation in units of image range pixel size
 
@@ -77,19 +73,15 @@ unset noclobber
      echo "range sampling rate out of bounds"
      exit 1
   endif
+  #if ( $SC == 10 && $shift_topo == 1 ) then
+  #  echo "Sentinel-1: special case for range decimation"
+  #  set rng = 4
+  #endif
   echo " topo_ra.csh: range decimation is: " $rng
 #
 # clean up
 #
   cleanup.csh topo
-#
-# make an amplitude image of the master - always
-#
-  echo "SLC2AMP.CSH - START"
-  cd SLC
-  slc2amp.csh $master.PRM $rng amp-$master.grd
-  cd ../topo
-  echo "SLC2AMP.CSH - END"
 #
 # make topo_ra if there is dem.grd
 #
@@ -97,15 +89,23 @@ unset noclobber
     echo " "
     echo "DEM2TOPO_RA.CSH - START"
     echo "USER SHOULD PROVIDE DEM FILE"
+    cd topo
     cp ../SLC/$master.PRM master.PRM
     set led_file = `grep led_file master.PRM | awk '{print $3}'`
     ln -s ../raw/$led_file .
     if (-f dem.grd) then 
-      dem2topo_ra.csh master.PRM dem.grd 
+      if ("x$region_cut" == "x") then
+        dem2topo_ra.csh master.PRM dem.grd
+      else
+        cut_slc master.PRM junk $region_cut 1
+        mv junk.PRM master.PRM
+        dem2topo_ra.csh master.PRM dem.grd
+      endif
     else 
       echo "no DEM file found: " dem.grd 
       exit 1
     endif
+    cd ..
     echo "DEM2TOPO_RA.CSH - END"
 # 
 # shift topo_ra
@@ -113,8 +113,11 @@ unset noclobber
     if ($shift_topo == 1) then 
       echo " "
       echo "OFFSET_TOPO - START"
-      ln -s ../SLC/amp-$master.grd . 
+      cd topo
+      ln -s ../raw/$master.SLC .
+      slc2amp.csh master.PRM $rng amp-$master.grd
       offset_topo amp-$master.grd topo_ra.grd 0 0 7 topo_shift.grd 
+      cd ..
       echo "OFFSET_TOPO - END"
     else if ($shift_topo == 0) then 
       echo "shift_topo = 0: NO TOPO_RA SHIFT"
@@ -133,7 +136,7 @@ unset noclobber
     echo " "
     echo "LANDMASK - START"
     if ($region_cut == "") then
-      set region_cut = `gmt grdinfo ../SLC/amp-$master.grd -I- | cut -c3-20`
+      set region_cut = `gmt grdinfo amp-$master.grd -I- | cut -c3-20`
     endif
     landmask.csh $region_cut
     echo "LANDMASK - END"
