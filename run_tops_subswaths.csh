@@ -9,9 +9,23 @@ if ( $#argv > 0 && ( $1 == '-h' || $1 == '--help' ) ) then
   exit 1
 endif
 
-#find subswaths to process
-set subswaths = `ls -d F?`
+# find subswaths to process - check the config file and make folders if not already created.
+# old: set subswaths = `ls -d F?`
+set subswaths = `grep s1_subswath $config |awk '{print $3}'`
 echo "Processing subswaths $subswaths"
+foreach n (`echo $subswaths | sed "s/,/ /g"`)
+  # only create folder if it does not exist
+  if ( ! -d F$n ) then
+    echo "Creating subfolder F$n and making links"
+    mkdir -p F$n/topo
+    cd F$n/topo
+    ln -s ../../topo/dem.grd .
+    mkdir -p ../raw_orig
+    cd ../raw_orig
+    ln -s ../../raw_orig/* .
+    cd ../..
+  endif
+end
 
 foreach F ( $subswaths ) 
   if ( $#argv == 1 ) then
@@ -34,7 +48,8 @@ foreach F ( $subswaths )
   endif
 
   #run gmtsar_app
-  qsub -v config=$config ../run_gmtsar_app.pbs
+  #qsub -v config=$config ../run_gmtsar_app.pbs
+  python $GMTSAR_APP/gmtsar_app.py $config
 
   cd ..
 end
