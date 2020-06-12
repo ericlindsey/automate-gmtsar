@@ -198,7 +198,10 @@ unset noclobber
   else if (! -f $master.PRM) then
   
     if ($SAT == ALOS2) then
-      ALOS_pre_process_SLC $master LED-$ledstem $commandline
+      #ALOS_pre_process_SLC $master LED-$ledstem $commandline
+      echo "pre process master"
+      echo $commandline
+      ALOS_pre_process_SLC $master LED-$ledstem -ALOS2 $commandline  ##26032020
 
     else if ($SAT == ALOS) then
       ALOS_pre_process $master LED-$ledstem $commandline
@@ -254,7 +257,7 @@ unset noclobber
     
       if ($SAT == ALOS2) then
         set ledstem = `echo $slave | awk '{ print substr($1,8,32)}'`
-        ALOS_pre_process_SLC $slave LED-$ledstem $commandline
+        ALOS_pre_process_SLC $slave LED-$ledstem -ALOS2 $commandline
         #
         # check the range sampling rate of the slave images and do conversion if necessary
         #
