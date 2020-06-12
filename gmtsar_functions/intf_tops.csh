@@ -173,6 +173,15 @@ foreach line (`awk '{print $0}' $1`)
       ln -s ../../raw/$rep.SLC .
       cp ../../raw/$ref.PRM .
       cp ../../raw/$rep.PRM .
+    if ($region_cut != "") then
+      echo "Cutting SLC image to $region_cut"
+      cut_slc $ref.PRM junk1 $region_cut
+      cut_slc $rep.PRM junk2 $region_cut
+      mv junk1.PRM $ref.PRM 
+      mv junk2.PRM $rep.PRM
+      mv junk1.SLC $ref.SLC
+      mv junk2.SLC $rep.SLC
+    endif
     
       if($topo_phase == 1) then
         if($shift_topo == 1) then
@@ -212,9 +221,6 @@ foreach line (`awk '{print $0}' $1`)
 #
 # unwrapping
 #
-    if ($region_cut == "") then
-      set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
-    endif
 
     if ($corr_file != "") then
       echo "moving original correlation file to corr.grd.orig"
@@ -225,6 +231,9 @@ foreach line (`awk '{print $0}' $1`)
 
     if ($threshold_snaphu != 0 ) then
       if ($switch_land == 1) then
+        if ($region_cut == "") then
+          set region_cut = `gmt grdinfo phase.grd -I- | cut -c3-20`
+        endif
         cd ../../topo
         if (! -f landmask_ra.grd) then
           landmask.csh $region_cut
@@ -269,8 +278,9 @@ foreach line (`awk '{print $0}' $1`)
   #
   echo ""
   echo "GEOCODE.CSH - START"
-  rm raln.grd ralt.grd
   if ($topo_phase == 1 && $threshold_geocode != 0) then
+      if (-f raln.grd) rm raln.grd 
+      if (-f ralt.grd) rm ralt.grd
     rm trans.dat
     ln -s  ../../topo/trans.dat .
     echo "threshold_geocode: $threshold_geocode"

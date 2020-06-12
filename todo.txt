@@ -1,0 +1,33 @@
+last update June 2020
+
+todo:
+---
+create get_dem.csh
+update creation of intf.in file 
+create merge_tops step in gmtsar_app
+map workflow and simplify gmtsar_app 
+(fix in GMTSAR): preproc_batch_tops_esd.csh deletes the baseline_table.dat file
+landmask_manual.csh uses hard-coded -I value - may be wrong for ALOS2
+
+check still working:
+---
+use of SAT_baseline vs ALOS_baseline in align.csh
+use of original baseline_table.csh in non-S1 pre_proc_batch.csh
+
+files notes:
+---
+align_batch.csh        : modified to enable ALOS2 batch alignment and parallel alignment. Should merge into GMTSAR master
+align.csh              : modified to enable ALOS2 batch alignment and parallel alignment. Should merge into GMTSAR master
+filter.csh             : modified to allow changing psize value. Should merge into GMTSAR master
+focus_master.csh       : very short, special command to enable parallel alignment. Should merge into GMTSAR master
+goldstein_filter.csh   : special command to run goldstein filter by itself. Should merge into GMTSAR master
+grd_io.py              : used to read GMT GRD files into python - for nneigh_interp 
+intf_batch.csh         : modified to enable ALOS2 batch processing. Should merge into GMTSAR master
+intf_tops.csh          : lots of modifications, to enable 3-stage processing, psize, and custom snaphu_interp. Needs testing
+landmask_manual.csh    : special command to make landmask easier to use. Merge back / delete?
+make_los_products.csh  : make ascii files. Seems more complete than make_los_ascii.csh in GMTSAR?
+nneigh_interp.py       : use python to interpolate masked phase for snaphu_interp. Should test against the GMT method
+pre_proc_batch.csh     : modified to enable ALOS2 and TSX batch processing. Should eventually merge into GMTSAR master, lots of testing needed.
+proj_ra2ll_hi.csh      : small modification to hard-code high-resolution geocoding. Convenience script 
+snaphu_interp.csh      : uses python interpolation to greatly speed up unwrapping. Should test against the GMT method 
+topo_ra.csh            : split off from intf_batch and intf_tops to better enable parallel processing. Should merge into GMTSAR master 
