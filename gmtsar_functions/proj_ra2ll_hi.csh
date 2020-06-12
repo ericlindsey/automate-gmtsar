@@ -58,9 +58,12 @@ gmt gmtconvert raplnlt -bi5f -bo3f -o3,4,2 > llp
 #
 # use higher resolution for data with higher range resolution and PRF
 #
-# set pix_m = `ls gauss_* | awk -F_ '{print $2/4}'` # Use 1/4 the filter width
-# set incs = `m2s.csh $pix_m llp`			  # Get fine and crude grid interval for lookup grids
+
+#set pix_m = `ls gauss_* | awk -F_ '{print $2/4}'` # Use 1/4 the filter width
+#set incs = `m2s.csh $pix_m llp`			  # Get fine and crude grid interval for lookup grids
+# modification: force highest resolution
 set incs = `echo 0.0002777777777777778 0.002777777777777778`
+
 #
 set R =  `gmt gmtinfo llp -I$incs[2] -bi3f `
 gmt blockmedian llp $R -bi3f -bo3f -I$incs[1] -r -V > llpb
