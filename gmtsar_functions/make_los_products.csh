@@ -36,10 +36,8 @@ set ledfile = `grep led_file $2 | awk '{print $3}'`
 ln -s ../../raw/$ledfile .
 
 #get the correct satellite name for SAT_look:
-if ($SAT == TSX || $SAT == S1) then
+if ($SAT == TSX || $SAT == S1 || $SAT == ERS || $SAT == ENVI) then
   set SAT = 'SAT'
-else if ($SAT == ERS) then
-  set SAT = 'ENVI'
 else if ($SAT == ALOS2) then
   set SAT = 'ALOS'
 endif
