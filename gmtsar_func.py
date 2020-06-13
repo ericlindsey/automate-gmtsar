@@ -453,16 +453,20 @@ def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False):
     with open(intf_file, 'w') as f:
         for i in range(len(intflist)):
             f.write('%s:%s\n'%(intflist[i][0],intflist[i][1]))
+
+
+    # currently not plotting. These scripts need an overhaul
+
     #plot scenes, and intflist / donelist as lines
     #plot_intfs(intflist,donelist,scenelist,decyears,baselines,lines=lines,no_label=no_label)
-    #gmt version
-    plot_created_intfs(max_timespan, max_baseline, SAT)
-
-def plot_created_intfs(max_timespan, max_baseline, SAT):
-    baselinetable='raw/baseline_table.dat'
-    plot_intfs_cmd = " %s/plot_created_intfs.csh %s %d %d %s"%(cshpath,baselinetable,max_timespan,max_baseline,SAT)
-    print('%s'%plot_intfs_cmd)
-    run_command(plot_intfs_cmd, logging=False)
+    #gmt version - works only for ALOS or S1
+#    plot_created_intfs(max_timespan, max_baseline, SAT)
+#
+#def plot_created_intfs(max_timespan, max_baseline, SAT):
+#    baselinetable='raw/baseline_table.dat'
+#    plot_intfs_cmd = " %s/plot_created_intfs.csh %s %d %d %s"%(cshpath,baselinetable,max_timespan,max_baseline,SAT)
+#    print('%s'%plot_intfs_cmd)
+#    run_command(plot_intfs_cmd, logging=False)
 
 
 # def plot_intfs(intflist,donelist,scenelist,decyears,baselines,lines=None,no_label=False):    
