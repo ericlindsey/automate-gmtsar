@@ -85,11 +85,12 @@ unset noclobber
 #
 # make topo_ra if there is dem.grd
 #
+  cd topo
+
   if ($topo_phase == 1) then 
     echo " "
     echo "DEM2TOPO_RA.CSH - START"
     echo "USER SHOULD PROVIDE DEM FILE"
-    cd topo
     cp ../SLC/$master.PRM master.PRM
     set led_file = `grep led_file master.PRM | awk '{print $3}'`
     ln -s ../raw/$led_file .
@@ -105,7 +106,6 @@ unset noclobber
       echo "no DEM file found: " dem.grd 
       exit 1
     endif
-    cd ..
     echo "DEM2TOPO_RA.CSH - END"
 # 
 # shift topo_ra
@@ -113,11 +113,9 @@ unset noclobber
     if ($shift_topo == 1) then 
       echo " "
       echo "OFFSET_TOPO - START"
-      cd topo
       ln -s ../raw/$master.SLC .
       slc2amp.csh master.PRM $rng amp-$master.grd
       offset_topo amp-$master.grd topo_ra.grd 0 0 7 topo_shift.grd 
-      cd ..
       echo "OFFSET_TOPO - END"
     else if ($shift_topo == 0) then 
       echo "shift_topo = 0: NO TOPO_RA SHIFT"
@@ -141,6 +139,8 @@ unset noclobber
     landmask.csh $region_cut
     echo "LANDMASK - END"
   endif
+
+  cd ..
   
   echo ""
   echo "END TOPO_RA.CSH"
