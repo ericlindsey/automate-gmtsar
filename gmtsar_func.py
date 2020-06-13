@@ -308,6 +308,10 @@ def setup_align(SAT,dataDotIn,py_config,align_file,logtime=''):
         s1_esd_mode = py_config['s1_esd_mode']
         #Sentinel alignment cannot be done in parallel...yet!
         alignlist=np.append(alignlist,'cd raw ; %s data.in ../topo/dem.grd 2 %s ; cd .. align_%s.log'%(s1_preproc,s1_esd_mode,logtime))
+        # check for missing baseline_table.dat
+        if not os.path.isfile('raw/baseline_table.dat') and os.path.isfile('raw/baseline_table_backup.dat'):
+            shutil.copy2('raw/baseline_table_backup.dat','raw/baseline_table.dat')
+
     else:
         command = cshpath+'/align_batch.csh'
         orbit_indx=get_orbit_index(SAT,dataDotIn[0])
@@ -550,6 +554,7 @@ def exec_preproc_command(SAT,py_config,configfile):
                     ln -s ../raw_orig/*EOF .
                     ln -s ../raw_orig/*/measurement/*iw%s*tiff .
                     preproc_batch_tops.csh data.in ../topo/dem.grd 1 >& preprocess_%s.log
+                    cp baseline_table.dat baseline_table_backup.dat
                     cd ..
                     '''%(s1_subswath,time.strftime("%Y_%m_%d-%H_%M_%S"))
         run_command(command, logging=False)
