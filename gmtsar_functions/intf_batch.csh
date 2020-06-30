@@ -261,19 +261,24 @@ if ($stage <= 3) then  #note, stage 2 is defined inside the loop
       echo "SKIP UNWRAP PHASE"
     endif
 
-    echo ""
-    echo "GEOCODE.CSH - START"
-    rm raln.grd ralt.grd
-    if ($topo_phase == 1) then
-      rm trans.dat
-      ln -s  ../../topo/trans.dat . 
-      echo "threshold_geocode: $threshold_geocode"
-      geocode.csh $threshold_geocode
+    if ($threshold_geocode != 0) then
+      echo ""
+      echo "GEOCODE.CSH - START"
+      rm raln.grd ralt.grd
+      if ($topo_phase == 1) then
+        rm trans.dat
+        ln -s  ../../topo/trans.dat . 
+        echo "threshold_geocode: $threshold_geocode"
+        geocode.csh $threshold_geocode
+      else 
+        echo "topo_ra is needed to geocode"
+        exit 1
+      endif
+      echo "GEOCODE.CSH - END"
     else 
-      echo "topo_ra is needed to geocode"
-      exit 1
+      echo ""
+      echo "SKIP GEOCODE"
     endif
-    echo "GEOCODE.CSH - END"
  
     cd ../..
 

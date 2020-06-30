@@ -61,7 +61,7 @@ foreach n ( $subswaths )
 
   #run gmtsar_app
   #qsub -v config=$config ../run_gmtsar_app.pbs
-  python $GMTSAR_APP/gmtsar_app.py $config > run_gmtsar_app.log &
+  nohup python $GMTSAR_APP/gmtsar_app.py $config > & run_gmtsar_app.log &
 
   cd ..
 end

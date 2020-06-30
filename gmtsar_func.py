@@ -308,9 +308,6 @@ def setup_align(SAT,dataDotIn,py_config,align_file,logtime=''):
         s1_esd_mode = py_config['s1_esd_mode']
         #Sentinel alignment cannot be done in parallel...yet!
         alignlist=np.append(alignlist,'cd raw ; %s data.in ../topo/dem.grd 2 %s ; cd .. align_%s.log'%(s1_preproc,s1_esd_mode,logtime))
-        # check for missing baseline_table.dat
-        if not os.path.isfile('raw/baseline_table.dat') and os.path.isfile('raw/baseline_table_backup.dat'):
-            shutil.copy2('raw/baseline_table_backup.dat','raw/baseline_table.dat')
 
     else:
         command = cshpath+'/align_batch.csh'
@@ -508,6 +505,9 @@ def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False):
 def load_baseline_table(SAT):
     # load baseline table
     baselinetable='raw/baseline_table.dat'
+    # check for missing baseline_table.dat - sometimes it is deleted by preproc_batch_tops_esd.csh
+    if not os.path.isfile(baselinetable) and os.path.isfile('raw/baseline_table_backup.dat'):
+        shutil.copy2('raw/baseline_table_backup.dat',baselinetable)
     if os.path.isfile(baselinetable):
         table=np.loadtxt(baselinetable,usecols=(0,1,2,4),dtype={'names': ('orbit','yearday','day','bperp'), 'formats': ('S100','f16', 'f4', 'f16')})    
         if SAT == 'S1':
