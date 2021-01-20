@@ -1,6 +1,6 @@
 **Processing Sentinel InSAR data -- GMTSAR\_app workflow**
 
-Eric Lindsey, last updated June 2019
+Eric Lindsey, last updated Jan 2021
 
 Summary of steps
 
