@@ -1,4 +1,5 @@
-*** GMTSAR APP: An automated GMTSAR workflow in python ***
+GMTSAR APP: An automated GMTSAR workflow in python
+------------
 
 This repository contains a set of python and modified C-shell scripts that should make using GMTSAR much more user-friendly. 
 All the manual creation of files and selection of processing parameters is handled by python, and the user only has to interact at a few points to run the next command.
