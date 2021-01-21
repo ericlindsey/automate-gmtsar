@@ -37,7 +37,25 @@ def find_scenes_s1(s1_subswath,s1_orbit_dirs):
         outputlist.append(image_name)
     return outputlist
 
-def unzip_images_to_dir(dirlist,unzip_dir,nproc=1):
+
+def unzip_images_to_dir(filelist,unzip_dir):
+    """
+    For a list of zipped S1 SLC files, unzip them to a temporary directory (not parallel).
+    """
+    cmds=[]
+    owd=os.getcwd()
+    # go to the output directory so the unzipped results will fall there:
+    os.chdir(unzip_dir)
+    for image in filelist:
+        item=os.path.abspath(image)
+        file=os.path.basename(item)
+        cmd = 'unzip %s log_%s.txt'%(item,file)
+        gmtsar_func.run_command(cmd)
+    os.chdir(owd)
+
+
+# currently unused (now running at a higher level in parallel instead)
+def unzip_images_to_dir_parallel(dirlist,unzip_dir,nproc=1):
     """
     Look for zipped S1 SLC files and unzip them to a temporary directory, optionally running in parallel.
     """
@@ -58,6 +76,7 @@ def unzip_images_to_dir(dirlist,unzip_dir,nproc=1):
 
     # go to the output directory so the unzipped results will fall there:
     owd=os.getcwd()
+    os.makedirs(unzip_dir,exist_ok=True)
     os.chdir(unzip_dir)
     # run multiple unzip commands at the same time:
     with multiprocessing.Pool(processes=nproc) as pool:
@@ -355,7 +374,7 @@ def write_ll_pins(fname, lons, lats, asc_desc):
     gmtsar_func.write_list(fname,lonlats)
 
 
-def create_frame_tops_parallel(safelist,eof,llpins,logfile,workdir):
+def create_frame_tops_parallel(filelist,eof,llpins,logfile,workdir,unzipped):
     """
     Run the GMTSAR command create_frame_tops.csh to combine bursts within the given latitude bounds
     Modified version enables running in parallel by running in a temporary subdirectory.
@@ -365,8 +384,17 @@ def create_frame_tops_parallel(safelist,eof,llpins,logfile,workdir):
     # this is because GMTSAR uses constant temp filenames that will collide with each other
     # in this case, the colliding name is the temp folder 'new.SAFE'
     os.makedirs(workdir, exist_ok=False)
-    oldcwd=os.getcwd()
+    cwd=os.getcwd()
     os.chdir(workdir)
+
+    # If files are not already unzipped, unzip them in a subdirectory first
+    if not unzipped:
+        temp_unzip_dir = 'temp_unzip'
+        os.makedirs(temp_unzip_dir, exist_ok=False)
+        unzip_images_to_dir(filelist,temp_unzip_dir)
+        safelist = glob.glob('%s/%s/S1*SAFE'%(cwd,temp_unzip_dir))
+    else:
+        safelist = filelist
 
     # write file list to the current directory
     gmtsar_func.write_list('SAFE.list', safelist)
@@ -376,7 +404,7 @@ def create_frame_tops_parallel(safelist,eof,llpins,logfile,workdir):
     local_eof=os.path.basename(eof)
 
     # copy llpins file to current directory
-    shutil.copy2(os.path.join(oldcwd,llpins),llpins)
+    shutil.copy2(os.path.join(cwd,llpins),llpins)
 
     # create GMTSAR command and run it
     #cmd = '/home/share/insarscripts/automate/gmtsar_functions/create_frame_tops.csh SAFE.list %s %s 1 %s'%(local_eof, llpins, logfile)
@@ -385,11 +413,11 @@ def create_frame_tops_parallel(safelist,eof,llpins,logfile,workdir):
 
     # copy result back to main directory
     result_safe=glob.glob('S1*SAFE')[0]
-    shutil.move(result_safe,os.path.join(oldcwd,result_safe))
-    shutil.move(logfile,oldcwd)
+    shutil.move(result_safe,os.path.join(cwd,result_safe))
+    shutil.move(logfile,cwd)
 
     # clean up
-    os.chdir(oldcwd)
+    os.chdir(cwd)
     shutil.rmtree(workdir)
 
 def create_frame_tops(safelist,eof,llpins,logfile):

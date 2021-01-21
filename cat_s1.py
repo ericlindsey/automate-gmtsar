@@ -24,7 +24,7 @@ if __name__ == '__main__':
     parser.add_argument('-d','--direction',type=str,required=True,help='Orbit direction (A/D), required.')
     # optional arguments
     parser.add_argument('-n','--nproc',type=int,default=1,help='Number of processors to run in parallel, optional (default: 1)')
-    parser.add_argument('-u','--unzip',action='store_true',default=False,help='Allow original zipped files as input instead of the unzipped SAFE directories (default: true).')
+    parser.add_argument('-z','--unzipped',action='store_true',default=False,help='Use unzipped SAFE directories instead of the original zip files (default: true).')
     # parse
     args = parser.parse_args()
 
@@ -38,19 +38,15 @@ if __name__ == '__main__':
     s1_func.write_ll_pins(ll_fname, lons, lats, args.direction)
 
     # find a list of all scenes and organize them by orbit number.
-    # If unzip flag is passed, first create a temp directory to unzip files to.
-    if args.unzip:
-        rand_id = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(12))
-        temp_unzip_dir = 'temp_unzip_' + rand_id
-        os.makedirs(temp_unzip_dir, exist_ok=False)
-        s1_func.unzip_images_to_dir(args.searchdirs,temp_unzip_dir,args.nproc)
-        [images_by_orbit, eofs] = s1_func.find_images_by_orbit([temp_unzip_dir], args.orbit)
+    if args.unzipped:
+        ftype='SAFE'
     else:
-        [images_by_orbit, eofs] = s1_func.find_images_by_orbit(args.searchdirs, args.orbit)
+        ftype='zip'
+    [images_by_orbit, eofs] = s1_func.find_images_by_orbit(args.searchdirs, args.orbit, ftype)
     print('found %d orbits'%len(images_by_orbit))
     
-    # for each satellite pass
     argslist=[]
+    # for each satellite pass
     for ab_orbit in images_by_orbit:
         print('working on orbit %s'%ab_orbit)
         print('images: %s'%images_by_orbit[ab_orbit])
@@ -61,13 +57,9 @@ if __name__ == '__main__':
         temp_workdir = 'temp_cat_orbit_' + ab_orbit
 
         # append args to list of tuples for parallel run
-        argslist.append( (images_by_orbit[ab_orbit], eofs[ab_orbit], ll_fname, log_fname, temp_workdir) )
+        argslist.append( (images_by_orbit[ab_orbit], eofs[ab_orbit], ll_fname, log_fname, temp_workdir, args.unzipped) )
 
     # run GMTSAR function 'create_frame_tops.csh' in parallel
     with multiprocessing.Pool(processes=args.nproc) as pool:
         pool.starmap(s1_func.create_frame_tops_parallel, argslist)
         
-    # don't keep the unzipped data around?
-    if args.unzip:
-        shutil.rmtree(temp_unzip_dir)
-
