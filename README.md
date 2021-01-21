@@ -7,7 +7,8 @@ See the instructions below for an example with Sentinel-1 data.
 
 Eric Lindsey, last updated Jan 2021
 
-** Setup and installation: **
+**Setup and installation:**
+
 Latest tests: works with GMTSAR 6.0 and Python 3.8.
 
 Run the command 'setup_gmtsar_app.sh' to add the $GMTSAR_APP environment variable to your shell.
@@ -454,7 +455,7 @@ other options have changed.
 As above, we need to look individually at our results and decide what
 worked and what didn't.
 
-** Congratulations, you're done! **
+**Congratulations, you're done!**
 
 **About orbits:**
 
