@@ -14,6 +14,8 @@ foreach n ( 1 2 3 )
   cd ../..
 end
 
-cp $GMTSAR_APP/batch.config .
-cp $GMTSAR_APP/run_tops_subswaths.csh .
+if ( ! -f batch.config ) then
+  cp $GMTSAR_APP/batch.config .
+  cp $GMTSAR_APP/run_tops_subswaths.csh .
+endif
 
