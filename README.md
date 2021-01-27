@@ -176,7 +176,7 @@ Place your dem.grd file (do not re-name it!) from step 2 in the topo/ directory.
 Under raw\_orig, link all the cropped .SAFE folders that you created in step 3:
 
     $ cd raw_orig
-    $ ln --s /userdata/home/data/INSAR/S1A/kumamoto/download/crop/\*SAFE .
+    $ ln -s ../../crop/*SAFE .
 
 Now, run the command 'setup\_tops.csh' to create the subswath links:
 
