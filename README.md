@@ -206,16 +206,6 @@ num\_processors = 1 (this step does not run in parallel.)
 
 (Note, it's possible to include several s1\_orbit\_dir entries, they should be comma-separated and all on one single long line).
 
-\* There is one other important parameter to set here, which is related to a bug in GMTSAR: (last tested in 2019)
-
-shift\_topo = 0
-
-The reason for this is that GMTSAR will not correctly create a shifted
-topography file for Sentinel data, although this is a required step for
-other satellites. By skipping this step, we use the timing information
-directly to compute the radar topography, rather than a
-cross-correlation.
-
 The many other options in this file will be used later. Note that we set
 num\_processors to 1 here because the preprocessing and alignment stages
 do not run in parallel for Sentinel (they do for the other satellites).
