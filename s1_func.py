@@ -392,7 +392,8 @@ def create_frame_tops_parallel(filelist,eof,llpins,logfile,workdir,unzipped):
         temp_unzip_dir = 'temp_unzip'
         os.makedirs(temp_unzip_dir, exist_ok=False)
         unzip_images_to_dir(filelist,temp_unzip_dir)
-        safelist = glob.glob('%s/S1*SAFE'%(temp_unzip_dir))
+        # need to provide full path to glob to get full paths back
+        safelist = glob.glob('%s/%s/%s/S1*SAFE'%(cwd,workdir,temp_unzip_dir))
     else:
         safelist = filelist
 
