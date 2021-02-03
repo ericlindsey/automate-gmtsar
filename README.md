@@ -178,8 +178,9 @@ Under raw\_orig, link all the cropped .SAFE folders that you created in step 3:
     $ cd raw_orig
     $ ln -s ../../crop/*SAFE .
 
-Now, run the command 'setup\_tops.csh' to create the subswath links:
+Now, run the command 'setup\_tops.csh' from your processing directory, which will create the subswath folders F1, F2, F3 and links inside them:
 
+    $ cd ..
     $ $GMTSAR_APP/setup_tops.csh
 
 That's it! Ready for the next step.
