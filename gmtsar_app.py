@@ -25,11 +25,11 @@ import gmtsar_func
 def run_parallel(cmds, usempi):
     if usempi:
          # call run_command with MPI map
-        mpi4py_map.map(gmtsar_func.run_command, cmds)
+        mpi4py_map.map(gmtsar_func.run_logged_command, cmds)
     else:
         # call run_command with multiprocessing pool    
         with multiprocessing.Pool(processes=numproc) as pool:
-            pool.map(gmtsar_func.run_command, cmds)
+            pool.map(gmtsar_func.run_logged_command, cmds)
 
 
 ##################################

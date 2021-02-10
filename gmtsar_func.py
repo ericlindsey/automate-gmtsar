@@ -77,7 +77,7 @@ def edit_xml_for_s1_preproc(py_config):
                 '''%(mydate,mydate,item,auxfile,item)
         #note, the aux-cal files (for S1A and S1B) must be manually placed in some folder,
         #for now we use the "cshpath" folder specified above... this is ugly
-        run_command(command, logging=False)
+        run_command(command)
 
 
 def get_master_long_name(s1_subswath,s1_orbit_dirs,master):
@@ -139,10 +139,10 @@ def setup_raw_tsx():
             imagename=glob.glob('IMAGEDATA/*.cos')[0]
             #convert the image to SLC with associated files (PRM, LED)
             cmd='make_slc_tsx %s %s %s'%(xmlname,imagename,tsxdate)
-            run_command(cmd, logging=False)
+            run_command(cmd)
             #extend the orbit file
             cmd='extend_orbit %s.LED tmp 3. ; mv tmp %s.LED'%(tsxdate,tsxdate)
-            run_command(cmd, logging=False)
+            run_command(cmd)
             #move the files we just created to our raw/ directory and go back there.
             for f in glob.glob('%s.*'%tsxdate):
                 print("move %s to %s"%(f,pwd))
@@ -272,7 +272,7 @@ def setup_preproc(SAT, py_config, master=''):
     
 def focus_master(SAT,master):
     focus_cmd = " %s/focus_master.csh %s"%(cshpath,master)
-    run_command(focus_cmd, logging=False)
+    run_command(focus_cmd)
     
 #find the indices of the orbit number in the scene name string (for align stage)
 def get_orbit_index(SAT,stem):
@@ -463,7 +463,7 @@ def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False):
 #    baselinetable='raw/baseline_table.dat'
 #    plot_intfs_cmd = " %s/plot_created_intfs.csh %s %d %d %s"%(cshpath,baselinetable,max_timespan,max_baseline,SAT)
 #    print('%s'%plot_intfs_cmd)
-#    run_command(plot_intfs_cmd, logging=False)
+#    run_command(plot_intfs_cmd)
 
 
 # def plot_intfs(intflist,donelist,scenelist,decyears,baselines,lines=None,no_label=False):    
@@ -557,29 +557,26 @@ def exec_preproc_command(SAT,py_config,configfile):
                     cd raw
                     ln -s ../raw_orig/*EOF .
                     ln -s ../raw_orig/*/measurement/*iw%s*tiff .
-                    preproc_batch_tops.csh data.in ../topo/dem.grd 1 >& preprocess_%s.log
+                    preproc_batch_tops.csh data.in ../topo/dem.grd 1
                     cp baseline_table.dat baseline_table_backup.dat
                     cd ..
-                    '''%(s1_subswath,time.strftime("%Y_%m_%d-%H_%M_%S"))
-        run_command(command, logging=False)
+                    '''%s1_subswath
     elif SAT == 'TSX':
         #almost generic but we don't run cleanup.
         command='''
                    cd raw
-                   %s/pre_proc_batch.csh %s data.in ../%s >& preprocess_%s.log
+                   %s/pre_proc_batch.csh %s data.in ../%s
                    cd ..
-                '''%(cshpath,SAT,configfile,time.strftime("%Y_%m_%d-%H_%M_%S"))
-        run_command(command, logging=False)
+                '''%(cshpath,SAT,configfile)
     else:
         #run the generic pre_proc_batch.csh for all other satellites
         command='''
                    cleanup.csh raw
                    cd raw
-                   %s/pre_proc_batch.csh %s data.in ../%s >& preprocess_%s.log
+                   %s/pre_proc_batch.csh %s data.in ../%s
                    cd ..
-                '''%(cshpath,SAT,configfile,time.strftime("%Y_%m_%d-%H_%M_%S"))
-        run_command(command, logging=False)
-
+                '''%(cshpath,SAT,configfile)
+    run_command(command, logFile='preprocess_%s.log'%time.strftime("%Y_%m_%d-%H_%M_%S"))
 
 # after running the baseline calculation from the first pre_proc_batch,
 # choose a new master that is close to the median baseline and timespan.
@@ -641,10 +638,11 @@ def run_topo_ra(SAT,config_file,logtime):
                    ln -s ../raw/*ALL*LED .
                    cd ..
                 '''    
-        run_command(command,logging=False)
+        run_command(command)
         
-    command=cshpath+"/topo_ra.csh %s topo_ra_%s.log"%(config_file,logtime)
-    run_command(command)
+    command=cshpath+"/topo_ra.csh %s"%config_file
+    run_command(command,logFile="topo_ra_%s.log"%logtime)
+
 
 # read list of commands from a file as an array
 def get_align_commands(infile):
@@ -657,28 +655,35 @@ def get_align_commands(infile):
     return commands
 
 
-
-def run_command(command, logging=True):
+def run_command(command, logFile=''):
     """
     Use subprocess.call to run a command.
-    Default assumes last argument is the log file, and removes it from the command (danger!).
+    If optional argument logFile is passed, redirect stdout and stderr to that file.
     """
     print('running', command)
-    if logging:
-        #remove last argument and open it as log file
-        logfile=command.split()[-1]
-        cmd=' '.join(command.split()[0:-1])
-        with open(logfile,'w') as outFile:
-            status=subprocess.call(cmd, shell=True, stdout=outFile, stderr=outFile)
-    else:
+    if not logFile.strip():
         #no logging, just run command as-is
         status=subprocess.call(command, shell=True)
+    else:
+        with open(logFile,'w') as outFile:
+            status=subprocess.call(command, shell=True, stdout=outFile, stderr=outFile)
     if status != 0:
         print('Python encountered an error in the command:')
         print(command)
         print('error code:', status)
         sys.exit(1)
-              
+
+
+def run_logged_command(command):
+    """
+    Used for pool.map where only one argument can be passed - before running, strip off last argument and use as logfile.
+    """
+    #remove last argument and use it as log file
+    logfile=command.split()[-1]
+    cmd=' '.join(command.split()[0:-1])
+    #now run the command with logging
+    run_command(cmd,logFile=logfile)
+
         
 #############################
 #                           #

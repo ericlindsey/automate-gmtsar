@@ -32,7 +32,7 @@ def find_scenes_s1(s1_subswath,s1_orbit_dirs):
         image_name,eof_name = get_s1_image_and_orbit(xml_name,s1_orbit_dirs)
         # copy this EOF to the raw_orig directory
         command = 'cp %s raw_orig/'%(eof_name)
-        gmtsar_func.run_command(command, logging=False)
+        gmtsar_func.run_command(command)
         # append image to list
         outputlist.append(image_name)
     return outputlist
@@ -48,9 +48,9 @@ def unzip_images_to_dir(filelist,unzip_dir):
     os.chdir(unzip_dir)
     for image in filelist:
         item=os.path.abspath(image)
-        file=os.path.basename(item)
-        cmd = 'unzip %s log_%s.txt'%(item,file)
-        gmtsar_func.run_command(cmd)
+        filename=os.path.basename(item)
+        cmd = 'unzip %s'%item
+        gmtsar_func.run_command(cmd,logFile='log_%s.txt'%filename)
     os.chdir(owd)
 
 
@@ -80,7 +80,7 @@ def unzip_images_to_dir_parallel(dirlist,unzip_dir,nproc=1):
     os.chdir(unzip_dir)
     # run multiple unzip commands at the same time:
     with multiprocessing.Pool(processes=nproc) as pool:
-        pool.map(gmtsar_func.run_command, cmds)
+        pool.map(gmtsar_func.run_logged_command, cmds)
     os.chdir(owd)
     
 
@@ -409,8 +409,8 @@ def create_frame_tops_parallel(filelist,eof,llpins,logfile,workdir,unzipped):
 
     # create GMTSAR command and run it
     #cmd = '/home/share/insarscripts/automate/gmtsar_functions/create_frame_tops.csh SAFE.list %s %s 1 %s'%(local_eof, llpins, logfile)
-    cmd = 'create_frame_tops.csh SAFE.list %s %s 1 %s'%(local_eof, llpins, logfile)
-    gmtsar_func.run_command(cmd,logging=True)
+    cmd = 'create_frame_tops.csh SAFE.list %s %s 1'%(local_eof, llpins)
+    gmtsar_func.run_command(cmd,logFile=logfile)
 
     # copy result back to main directory
     result_safe=glob.glob('S1*SAFE')[0]
@@ -431,7 +431,7 @@ def create_frame_tops(safelist,eof,llpins,logfile):
     shutil.copy2(eof,os.getcwd())
     local_eof=os.path.basename(eof)
 
-    cmd = '/home/share/insarscripts/automate/gmtsar_functions/create_frame_tops.csh %s %s %s 1 %s'%(safelist, local_eof, llpins, logfile)
+    cmd = '/home/share/insarscripts/automate/gmtsar_functions/create_frame_tops.csh %s %s %s 1'%(safelist, local_eof, llpins)
     #cmd = '~/Dropbox/code/geodesy/insarscripts/automate/gmtsar_functions/create_frame_tops.csh %s %s %s 1 %s'%(safelist, local_eof, llpins, logfile)
-    gmtsar_func.run_command(cmd,logging=True)
+    gmtsar_func.run_command(cmd,logFile=logfile)
 
