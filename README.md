@@ -5,7 +5,7 @@ This repository contains a set of python and modified C-shell scripts that shoul
 All the manual creation of files and selection of processing parameters is handled by python, and the user only has to interact at a few points to run the next command.
 See the instructions below for an example with Sentinel-1 data.
 
-Eric Lindsey, last updated Jan 2021
+Eric Lindsey, last updated Feb 2021
 
 **Setup and installation:**
 
@@ -14,34 +14,28 @@ Latest tests: works with GMTSAR 6.0 and Python 3.8.
 Run the command 'setup_gmtsar_app.sh' to add the $GMTSAR_APP environment variable to your shell.
 This will print out an export command you can put in your .zshrc or .bashrc to include this variable automatically.
 
-**Processing Sentinel InSAR data -- GMTSAR\_app workflow**
+**Processing Sentinel InSAR data -- GMTSAR_app workflow**
 
 Summary of steps
 
-1. Download data for a chosen track using sentinel\_query\_download.py
+1. a. Download data for a chosen track using sentinel_query_download.py
 
-2. Download a DEM (from <http://topex.ucsd.edu/gmtsar/demgen/>)
+   b. Download a DEM (from <http://topex.ucsd.edu/gmtsar/demgen/>)
 
-3.  Combine the frames to fit your desired latitude bounds using cat\_s1.py
+2.  Combine the frames to fit your desired latitude bounds using cat_s1.py
 
-4.  Set up your processing directory with the DEM and links to the raw data using setup\_tops.sh
+3.  Set up your processing directory with the DEM and links to the raw data using setup_tops.sh
 
-5.  Run gmtsar\_app.py on a single node with endstage = 3 to generate SLCs and radar geometry
+4.  Generate SLCs and radar geometry with gmtsar_app.py, startstage = 1, endstage = 3
 
-6.  Run gmtsar\_app.py on several nodes with startstage = 4 and endstage = 4 without unwrapping
+5.  Generate interferograms with gmtsar_app.py, startstage = 4, endstage = 4
 
-7.  QC and modify the interferogram list as needed -- remove badly
-    correlated ones and add any missing connections. Decide on
-    processing parameters, correlation masking method. Re-run step 5 as
-    needed.
+6.  QC and modify the parameters as needed.
 
-8.  Run gmtsar\_app stage 4 with proc\_stage = 3 and with unwrapping
+7.  Generate timeseries with run_sbas.csh.
 
-9. QC the final interferograms, re-do steps as needed
 
-Note, steps 5-8 may be combined as a single step if you trust the unwrapping process.
-
-**1. Searching for and downloading data using 'sentinel\_query\_download.py'**
+**1. a. Searching for and downloading data using 'sentinel\_query\_download.py'**
 
 Get this script from the separate repository at: (<https://github.com/ericlindsey/sentinel_query_download>).
 
@@ -94,7 +88,7 @@ earlier. See the example config file and more detailed information at the sentin
 
 We run the query with the command:
 
-    python sentinel\_query\_download.py sentinel\_query.config --verbose
+    python sentinel_query_download.py sentinel_query.config --verbose
 
 This returns all matching images that are stored as a .csv, and with the --verbose option prints out a summary to the screen.
 
@@ -103,7 +97,7 @@ the config file has a few extra settings under the headings "download" and "asf_
 A username and password is the most important thing for ASF downloads, and we can also set the script to run several downloads in parallel.
 But note that running too many may slow down each one's progress, particularly if you are using a spinning hard drive!
 
-We can now run the above python command with the option \--download. Note
+We can now run the above python command with the option --download. Note
 though, that this will occupy your terminal window for many hours, and if you are
 logged out for any reason, it will halt the download. If this happens, don't panic, just run the same command again. Fortunately, wget enables
 re-starting interrupted downloads so it should pick up where it left off.
@@ -124,7 +118,7 @@ We're done for now -- move on to the next downloading step, and then
 come back in the morning to check the results!
 
 
-**2. Downloading a DEM**
+**1. b. Downloading a DEM**
 
 We need a high-resolution Digital Elevation Model (DEM) for our
 processing. It has to be corrected to ellipsoid height (standard DEMs
@@ -138,19 +132,19 @@ Click 'generate' and then download the file when it is ready. Unzip the
 tar file, and keep only the file 'dem.grd'. The rest can be discarded.
 Upload this to komodo (eg. using scp) and place it with a descriptive
 enclosing folder name (don't change the file name) under
-/home/data/INSAR\_processing/dems.
+/home/data/INSAR_processing/dems.
 
 Notes:
 
-- Be sure to select 'SRTM1'
+- Be sure to select 'SRTM1' for the highest resolution.
 
 - Maximum size is 4x4 degrees. If you need a larger area, first download several regions and then use 'grdblend' or 'grdpaste' to combine them. The downloaded zip file contains a script that provides an example of how to do this.
 
-**3. Combining the frames: using cat\_s1.py**
+**2. Combining the frames: using cat_s1.py**
 
 Now that you have downloaded the data from ASF, you may notice several images have been downloaded for each date, in different directories beginning with F (e.g. F585, F590). The reason is that our search polygon might have extended across several image "frames" that ESA uses to break up the data into manageable file sizes along an orbit, and the download script will automatically get both images.
 
-Unfortunately, the early Sentinel-1 data (before 2017) had no consistent frame boundary, so for our long-term processing, to get a consistent image size we have to separate the individual 'bursts' (sub-frames) and then generate our own self-consistent "frame" for InSAR processing. This is done using cat\_s1.py, which invokes the GMTSAR command create\_frame\_tops.csh.
+Unfortunately, the early Sentinel-1 data (before 2017) had no consistent frame boundary, so for our long-term processing, to get a consistent image size we have to separate the individual 'bursts' (sub-frames) and then generate our own self-consistent "frame" for InSAR processing. This is done using cat\_s1.py, which invokes the GMTSAR command create_frame_tops.csh.
 
 You can copy the script 'run_cat_s1.sh' to your working directory and edit it as needed. The important things to set:
 
@@ -163,9 +157,9 @@ nproc - number of processes to run in parallel. Probably 1 if the data are all o
 Running this command will take a while, since it has to unzip the data and write the images back out to disk.
 
 
-**4. Setting up your processing directory**
+**3. Setting up your processing directory**
 
-This is a short step. GMTSAR expects the raw data and DEM to be in a specific directory structure, with one directory for each subswath (F1, F2, F3). You generally want to name your top directory something useful, like the name of the path and your area. Then make two sub-folders: topo/ and raw\_orig/:
+This is a short step. GMTSAR expects the raw data and DEM to be in a specific directory structure, with one directory for each subswath (F1, F2, F3). You generally want to name your top directory something useful, like the name of the path and your area. Then make two sub-folders: topo/ and raw_orig/:
 
     $ cd my_processing_directory
     $ mkdir topo
@@ -173,19 +167,19 @@ This is a short step. GMTSAR expects the raw data and DEM to be in a specific di
 
 Place your dem.grd file (do not re-name it!) from step 2 in the topo/ directory.
 
-Under raw\_orig, link all the cropped .SAFE folders that you created in step 3:
+Under raw_orig, link all the cropped .SAFE folders that you created in step 3:
 
     $ cd raw_orig
     $ ln -s ../../crop/*SAFE .
 
-Now, run the command 'setup\_tops.csh' from your processing directory, which will create the subswath folders F1, F2, F3 and links inside them:
+Now, run the command 'setup_tops.csh' from your processing directory, which will create the subswath folders F1, F2, F3 and links inside them:
 
     $ cd ..
     $ $GMTSAR_APP/setup_tops.csh
 
 That's it! Ready for the next step.
 
-**5. Generate SLCs and radar geometry using gmtsar\_app.py**
+**4. Generate SLCs and radar geometry using gmtsar\_app.py**
 
 We have finally finished setting up the data, and now we are ready to start processing. The first stage is to get the images into a format that makes them ready to be interfered. We call these aligned and pre-processsed images "SLC" for Single-Look-Complex. This is the full resolution complex image, in radar coordinates, stored in a matrix that has been precisely aligned to match a 'master' image. After this step, interferometry is just complex multiplication.
 
@@ -193,61 +187,45 @@ When you ran setup_tops.csh in the last step, it copied two files to your direct
 
 The first file, batch.config, contains the configuration parameters we need to set up. For now, the important values to check we set correctly are:
 
-sat\_name = S1 (this must be S1)
+    sat_name = S1
+    s1_subswath = 1,2,3
+    s1_orbit_dir = (valid path on your system with writable permissions)
+    startstage = 1
+    endstage = 3
+    num_processors = 1
 
-s1_subswath = 1,2,3 (edit this comma-separated list to include the subswaths you want)
+Notes:
+ - Sat name must be exactly 'S1'.
+ - Set the list of subswaths you wish to run as a comma-separated list. E.g. '1,2,3' or '2,3' or '1'.
+ - For the orbit directory, this should be an absolute path.
+ - startstage and endstage control which GMTSAR steps are run. These are: 1=preprocessing, 2=alignment, 3=radar geometry, 4=interferograms. Since 1-3 must be run first, and these are not done in parallel, while step 4 is run in paralel, it makes sense to do 1-3 with num_processors=1, then run step 4 later with more processors (see next section). But the code will still work fine if you run 1-4 all at once and request a larger number of processors. The extra processors will not be used until step 4 is reached.
+ - If you are running on a server via PBS, note that you should set your PBS script to use only one CPU here as well. See the section on PBS jobs below for more.
 
-s1\_orbit\_dir = (any place where you want to keep the orbit files. This should be an absolute path.)
-
-startstage = 1 (this must be 1 for now)
-
-endstage = 3 (set to 3 so that we don't prematurely make the interferograms)
-
-num\_processors = 1 (this step does not run in parallel.)
-
-(Note, it's possible to include several s1\_orbit\_dir entries, they should be comma-separated and all on one single long line).
-
-The many other options in this file will be used later. Note that we set
-num\_processors to 1 here because the preprocessing and alignment stages
-do not run in parallel for Sentinel (they do for the other satellites).
-
-If you are running on a server via PBS, note that you should set this to use only one CPU. See the section on PBS jobs below for more.
-
-Now, we can easily submit a job for all 3 subswaths (or whichever ones we have selected):
+Now, we can easily submit a job for all requested subswaths:
 
     $ ./run_tops_subswaths.csh
 
 This will give us a message that 3 jobs have been started. This step typically takes a few hours, depending on the number of scenes and how large they are.
 
-**6. Generate initial interferograms using gmtsar\_app.py**
+**5. Generate interferograms using gmtsar\_app.py**
 
-If the last stage ran correctly, you should see a subdirectory 'SLC' in
-each of the 3 subswath directories, with files consisting of an SLC image (e.g.
-'S1A20171210\_ALL\_F1.SLC'), a matching parameter file ('.PRM'), and an orbit
-file ('.LED') for each of the SAR scenes. For Sentinel, these will actually
+If the last stage ran correctly, you should see a subdirectory 'SLC' in each of the 3 subswath directories, with files consisting of an SLC image (e.g.
+'S1A20171210_ALL_F1.SLC'), a matching parameter file ('.PRM'), and an orbit file ('.LED') for each of the SAR scenes. For Sentinel, these will actually
 be links to files in the raw/ directory, while for other satellites the files will be physically located here.
 
-There will also be several files in the topo/ directory for each
-subswath, including 'trans.dat' -- this is the translation table between
-radar and geographic coordinates that will be used to geocode our
-interferograms.
+There will also be several files in the topo/ directory for each subswath, including 'trans.dat' -- this is the translation table between radar and geographic coordinates that will be used to geocode our interferograms.
 
 If everything looks correct and there were no errors in the .log files, we are ready to make some interferograms. Change a few config parameters in our top-level batch.config file before running:
 
-startstage = 4
-
-endstage = 4
-
-max\_timespan = 48
-
-intf\_min\_connectivity = 1
-
-threshold\_snaphu = 0
-
-num\_processors = 4
+    startstage = 4
+    endstage = 4
+    max_timespan = 48
+    intf_min_connectivity = 1
+    threshold_snaphu = 0.2
+    num_processors = 4
 
 If we want to check that our interferogram-generation settings are good,
-we can first run 'plot\_intf\_list.py' to generate the intf.in list and make a
+we can first run 'plot_intf_list.py' to generate the intf.in list and make a
 figure showing the connectivity:
 
     $ python $GMTSAR_APP/plot_intf_list.py batch.config
@@ -264,10 +242,8 @@ In this example, we will run just the interferogram stage (stage 4), in this cas
 
 Next, we will need to look at the interferograms, and decide on our processing parameters. This is where art blends with science...
 
-**\
-**
 
-**7. QC and modify the interferogram processing parameters**
+**6. QC and modify the interferogram processing parameters**
 
 We need to look at our interferograms, decide what went wrong (if
 anything), and determine what we need to do to fix things. This part is
@@ -302,40 +278,20 @@ directly. For example, it may help to open up a correlation file and
 look at the range of values in well-correlated and poorly-correlated
 areas, to determine a better threshold to use.
 
+There are several options for improving the unwrapping results:
 
-**8. Generate final unwrapped interferograms using gmtsar\_app.py**
+1. Reduce threshold_snaphu. Good values for Sentinel data are usually in the range 0.2 - 0.4, while for other
+satellites it may be smaller, in the range of 0.1 - 0.2. 
+Note that unwrapping will be skipped if threshold_snaphu is '0.0' but not if it is '0'. 
 
-Once we have modified intf.in, decided on our correlation threshold and
-filtering, and fixed any other bugs, we're ready to generate the final
-unwrapped interferograms. We just need to set the following config
-parameters in our top-level batch.config:
+2. Change interp_unwrap. This should generally be set to 1 because it greatly speeds
+up the process, but in rare cases it may be better to turn it off.
 
-threshold\_snaphu = 0.1 (for example)
-
-interp\_unwrap = 1
-
-detrend\_unwrap = 0
-
-topo\_assisted\_unwrapping = 0
-
-Note that unwrapping will be skipped if threshold\_snaphu is zero. In
-step 8 above, you should have tried some experiments to determine the
-value you want to use for this parameter.
-
-The other parameters are used to control how the unwrapping is done.
-
-interp\_unwrap is used to greatly speed up unwrapping and should
-generally always be set to 1, unless you are testing its functionality.
-It will mask decorrelated areas and fill them with a nearest-neighbor
-interpolation, which is required for preserving the wrapped phase
-relationships between the coherent pixels that remain. This option
-generally speeds unwrapping by a factor of 5 to 100.
-
-detrend\_unwrap and topo\_assisted\_unwrapping are optional 2-stage
+3. Turn on detrend_unwrap or topo_assisted_unwrapping. These are 2-stage
 unwrapping options that slow the process down quite a bit (the image has
 to be unwrapped twice) but can improve results if you are finding a lot
-of unwrapping errors. detrend\_unwrap is particularly helpful for ALOS-2
-data that often have big ramps, while topo\_assisted\_unwrapping is
+of unwrapping errors. detrend_unwrap is particularly helpful for ALOS-2
+data that often have big ramps, while topo_assisted_unwrapping is
 useful for volcanoes or other areas that commonly have a large
 tropospheric delay that is correlated with topography. If you find some
 interferograms have unwrapping errors, you may wish to create a subset
@@ -346,24 +302,28 @@ Also, if you have already run all of the interferograms without
 unwrapping and none of the filtering options have changed, you can save
 some time in this step using
 
-proc\_stage = 3
+    proc_stage = 3
 
-However, be careful with this option because it will cause GMTSAR to use
-whatever 'phasefilt.grd' was in the intf directory to start the
-unwrapping process, and will not check or re-create this file if any
-other options have changed.
+However, be careful with this option because it will cause GMTSAR to use whatever 'phasefilt.grd' was in the intf directory, and will not check or re-create this file if any other options have changed.
 
 
-**9. QC and modify the unwrapped interferograms**
+**7. Create timeseries using run_sbas.csh**
 
-As above, we need to look individually at our results and decide what worked and what didn't. Here, we should check all the unwrapped images to make sure there are no unwrapping errors. Detecting an unwrapping error is somewhat subjective (if it was easy, the computer wouldn't make any errors!) but
-they are often obvious. If you find any, there are a few options: 
+This is a simple code that generates the input files for the GMTSAR program 'sbas' and then runs it. You will need to check the help message for 'sbas' to see all the options available for this code. Basic usage is as follows:
 
-- Increase the correlation threshold to mask out more bad values, and re-run the processing to hopefully fix the error.
+1. list out the unwrap.grd files you want to include. To list all of them, simply do
 
-- There are also three additional assisted-unwrapping options available: interp_unwrap, detrend_unwrap, and topo_assisted_unwrapping. The first two are turned on by default (interp_unwrap uses nearest-neighbor interpolation to fill the masked areas, which reduces errors and greatly speeds up unwrapping, while detrend_unwrap adds a detrending step before unwrapping which helps avoid errors related to large ionospheric ramps), but you can try turning the third one on too (this attempts to remove a topo-correlated component of the image and then unwrap a second time), or setting a variety of combinations. 
+       ls intf/*/unwrap.grd > unwrap_list.in
+    
+Modify this list as needed, e.g. if there are bad images you wish to exclude, simply delete that line from the list.
 
-- Finally, if you have a very stubborn interferogram it may be better to simply delete it from further processing (assuming you still have enough connectivity in your interferograms to connect all the dates together).
+2. Choose your smoothing factor and n_atm values. Generally 0 is a good first case. Smoothing factor applies temporal smoothing to the timeseries for each pixel, and n_atm > 0 will run the Tymofyeyeva & Fialko method for reducing atmospheric noise by common-scene-stacking. 
+
+3. Now run: for example, with 0 for both parameters:
+
+       $GMTSAR_APP/gmtsar_functions/run_sbas.csh topo/master.PRM unwrap_list.in 0 0
+    
+Depending on the size and number of images, this will take several hours (or possibly days). A future improvement would be to enable this to run in parallel.
 
 **Congratulations, you're done!**
 
@@ -381,21 +341,20 @@ typically generated about 2 weeks after the image was acquired, once the
 precise GPS orbits have been published by the IGS. The files are usually
 valid for 1 day, and have a name format like this:
 
-S1A\_OPER\_AUX\_POEORB\_OPOD\_20141023T123724\_V20141001T225944\_20141003T005944.EOF
+S1A_OPER_AUX_POEORB_OPOD_20141023T123724_V20141001T225944_20141003T005944.EOF
 
-The first date is the production date, and the second two dates (after
-the 'V') specify the range of validity.
+The filename lists the satellite (S1A), type of orbit (POEORB), and threed dates. The first date is the file's production date, and the second two dates (after
+the 'V') specify the range of validity. For example, the file above is valid from 2014 Oct 01, 22:59:44 until 2014 Oct 03, 00:59:44.
 
 Restituted orbits (RES) are generated rapidly, but have a slightly lower
 accuracy. If we are using data acquired within the last 2 weeks, these
 will be our only option. Their name format is similar, but the validity
 range is much smaller, usually only a few hours:
 
-S1B\_OPER\_AUX\_RESORB\_OPOD\_20180101T053144\_V20180101T011536\_20180101T043306.EOF
+S1B_OPER_AUX_RESORB_OPOD_20180101T053144_V20180101T011536_20180101T043306.EOF
 
-gmtsar\_app.py is able to read these file formats and tell which one is
-the most recent and accurate version to use -- if both types are
-available for a given scene, the precise orbit will be used.
+gmtsar_app.py is able to read these file formats and tell which one is the most recent and accurate version to use -- if multiple files are
+available for a given scene, the precise orbit with the most recent production date will be used. If none are found on your system, gmtsar_app.py will request the most recent orbit file from ESA. The code will also request the most recent aux_cal.xml file from ESA as well.
 
 **Notes on running jobs on PBS clusters**
 
@@ -411,9 +370,8 @@ programs that have been installed for various users. For our purposes
 running any commands. This can be done by (for example, on Gekko as of
 May 2019):
 
-\$ module load gmtsar/5.6\_gmt5.4.4
-
-\$ module load python/3/intel/2018u3
+    $ module load gmtsar/5.6_gmt5.4.4
+    $ module load python/3/intel/2018u3
 
 Komodo and Gekko use the PBS system to schedule jobs submitted to
 various "queues". The queues we typically use are named: q12, q16,q24,
@@ -422,12 +380,12 @@ job interactively, don't run it directly on the "Head Node" (the default
 terminal you have logged into) -- that will cause a slowdown for all
 users! First, you should start an interactive job: on Komodo,
 
-\$ qsub --I
+    $ qsub --I
 
 On Gekko, due to the resource-tracking system, you need to include your
 Project ID also:
 
-\$ qsub --I -P eos\_ehill
+    $ qsub --I -P eos_ehill
 
 Now we are logged in to one of the compute nodes via ssh; this functions
 like a brand-new terminal session. Check that you change back to the
@@ -440,14 +398,14 @@ configuration options at the top. For Gekko, a simple script might look
 like this:
 
     #!/bin/bash
-    #PBS -N gmtsar\_app
-    #PBS -P eos\_ehill
+    #PBS -N gmtsar_app
+    #PBS -P eos_ehill
     #PBS -q q32
     #PBS -l walltime=120:00:00
     #PBS -l select=1:ncpus=32
     module load python/3/intel/2018u3
-    module load gmtsar/5.6\_gmt5.4.4
-    python gmtsar\_app.py batch.config \>& \$PBS\_JOBID.log
+    module load gmtsar/5.6_gmt5.4.4
+    python gmtsar_app.py batch.config >& $PBS_JOBID.log
     
 Note, the hash (\#) is important here -- this is not a comment; the job scheduler (PBS) reads these lines as special commands.
 
