@@ -25,7 +25,8 @@ if ( $#argv < 2 ) then
   echo "  vel.grd             --  mean velocity (mm/yr) grids "
   echo ""
   echo " example:"
-  echo "  run_sbas.csh intf.in 1 5"
+  echo "  ls intf/*/unwrap.grd > unwrap_list.in"
+  echo "  run_sbas.csh topo/master.PRM unwrap_list.in 1 5"
   exit 1
 endif
 
