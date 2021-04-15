@@ -10,7 +10,7 @@ Created on Mon Oct 23 10:43:44 2017
 @author: elindsey
 """
 
-import os, s1_func, gmtsar_func, argparse, string, random, multiprocessing, shutil
+import os, s1_func, gmtsar_func, argparse, string, random, multiprocessing, shutil, glob
 
 ######################## Command-line execution ########################
 
@@ -24,7 +24,8 @@ if __name__ == '__main__':
     parser.add_argument('-d','--direction',type=str,required=True,help='Orbit direction (A/D), required.')
     # optional arguments
     parser.add_argument('-n','--nproc',type=int,default=1,help='Number of processors to run in parallel, optional (default: 1)')
-    parser.add_argument('-z','--unzipped',action='store_true',default=False,help='Use unzipped SAFE directories instead of the original zip files (default: true).')
+    parser.add_argument('-r','--rerun',action='store_true',default=False,help='Re-run and overwrite existing cropped SAFE directories (default: false, will skip any orbits with an existing SAFE folder)')
+    parser.add_argument('-z','--unzipped',action='store_true',default=False,help='Look for unzipped SAFE directories instead of the original zip files (default: false).')
     # parse
     args = parser.parse_args()
 
@@ -49,6 +50,21 @@ if __name__ == '__main__':
     # for each satellite pass
     for ab_orbit in images_by_orbit:
         print('working on orbit %s'%ab_orbit)
+        
+        #get just the numeric part of the orbit ID
+        orbit_num=ab_orbit.split('_')[1]
+        #look for a matching SAFE folder in this directory
+        existing_safe=glob.glob('S1*_%s_*_*.SAFE'%orbit_num)
+        if existing_safe:
+          if args.rerun:
+              #if a matching safe folder exists, and this is a re-run, delete that safe folder.
+              print('Rerun specified, deleting %s'%existing_safe[0])
+              shutil.rmtree(existing_safe[0])
+          else:
+              #if a matching safe folder exists, but this is not a re-run, do not reprocess this orbit.
+              print('Existing cropped image found, skipping orbit %s\n'%ab_orbit)
+              continue
+
         print('images: %s'%images_by_orbit[ab_orbit])
         print('EOF: %s\n'%eofs[ab_orbit])
 
