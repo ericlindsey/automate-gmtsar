@@ -396,7 +396,7 @@ def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False):
         else:
             scene0,scene1 = el[0],el[1]
         ifg_dir = dirstems[scene0] + '_' + dirstems[scene1]
-        unwfile = 'intf/' + ifg_dir + '/phasefilt_mask_ll.grd'
+        unwfile = 'intf/' + ifg_dir + '/unwrap_mask_ll.grd'
         if (not (os.path.isfile(unwfile) and skip_finished)) and (np.abs(baselines[scene0] - baselines[scene1]) <= max_baseline) and (np.abs(intdays[scene0] - intdays[scene1]) <= max_timespan):
             # we run the interferogram, unless it is both done and we set skip_finished
             intflist.append([scene0,scene1])
@@ -450,56 +450,6 @@ def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False):
     with open(intf_file, 'w') as f:
         for i in range(len(intflist)):
             f.write('%s:%s\n'%(intflist[i][0],intflist[i][1]))
-
-
-    # currently not plotting. These scripts need an overhaul
-
-    #plot scenes, and intflist / donelist as lines
-    #plot_intfs(intflist,donelist,scenelist,decyears,baselines,lines=lines,no_label=no_label)
-    #gmt version - works only for ALOS or S1
-#    plot_created_intfs(max_timespan, max_baseline, SAT)
-#
-#def plot_created_intfs(max_timespan, max_baseline, SAT):
-#    baselinetable='raw/baseline_table.dat'
-#    plot_intfs_cmd = " %s/plot_created_intfs.csh %s %d %d %s"%(cshpath,baselinetable,max_timespan,max_baseline,SAT)
-#    print('%s'%plot_intfs_cmd)
-#    run_command(plot_intfs_cmd)
-
-
-# def plot_intfs(intflist,donelist,scenelist,decyears,baselines,lines=None,no_label=False):    
-#     #create plots
-#     ax=plt.subplot(111)
-#     # plot all intfs in the two lists
-#     label1='To do'
-#     for pair in intflist:
-#         ax.plot([decyears[pair[0]],decyears[pair[1]]],[baselines[pair[0]],baselines[pair[1]]],'b',label=label1)
-#         label1=''   
-#     label2='Finished'
-#     for pair in donelist: 
-#         ax.plot([decyears[pair[0]],decyears[pair[1]]],[baselines[pair[0]],baselines[pair[1]]],':r',label=label2)
-#         label2=''
-#     #plot scenes as points
-#     ax.plot(list(decyears.values()),list(baselines.values()),'b.')
-#     ax.plot(decyears[scenelist[0]],baselines[scenelist[0]],'r.',label='Master')
-#     #TODO: add non-overlapping labels. see e.g. https://stackoverflow.com/questions/19073683/matplotlib-overlapping-annotations-text
-#     if not no_label:
-#         for scene in scenelist:
-#             plt.annotate(
-#                 scene, xy=(decyears[scene],baselines[scene]), xytext=(-5, 5), size=6,
-#                 textcoords='offset points', ha='center', va='bottom')
-#     if lines:
-#         for line in lines:
-#             plt.axvline(x=line)
-#     #finish and save figure
-#     ax.legend()
-#     ax.set_ylabel('Perp. baseline (m)')
-#     ax.set_xlabel('Time (years)')
-#     image_fname='intfs.ps'
-#     plt.savefig(image_fname)
-#     print('created figure %s'%image_fname)
-#     image_fname='intfs.pdf'
-#     plt.savefig(image_fname)
-#     print('created figure %s'%image_fname)
     
 
 def load_baseline_table(SAT):
@@ -520,7 +470,7 @@ def load_baseline_table(SAT):
     else:
         print('did not find baseline table!')
         sys.exit(1)
-    print(table)
+    #print(table)
     return table
 
 
