@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import gmtsar_func
 
 
-def plot_intf_list(SAT,dataDotIn,intf_file,config_file,lines=None,no_label=False,no_color=False):
+def plot_intf_list(SAT,dataDotIn,intf_file,config_file,lines=None,no_label=False,no_color=False,plot_fname='plot_intfs'):
     #get list of scenes, and convert to time/baseline coordinates
     # load baseline table
     table = gmtsar_func.load_baseline_table(SAT)
@@ -89,10 +89,10 @@ def plot_intf_list(SAT,dataDotIn,intf_file,config_file,lines=None,no_label=False
     ax.legend()
     ax.set_ylabel('Perp. baseline (m)')
     ax.set_xlabel('Time (years)')
-    image_fname='plot_intfs.png'
+    image_fname='%s.png'%plot_fname
     plt.savefig(image_fname)
     print('created figure %s'%image_fname)
-    image_fname='plot_intfs.pdf'
+    image_fname='%s.pdf'%plot_fname
     plt.savefig(image_fname)
     print('created figure %s'%image_fname)
     

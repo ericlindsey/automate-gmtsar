@@ -362,14 +362,16 @@ def get_intf_commands(SAT,dataDotIn,intf_file,intf_config,logtime):
     
 
 # setup the interferogram list, according to optional thresholds. May optionally skip any for which 'unwrap.grd' is already found to exist.
-def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False):
+def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False,skip_finished=True):
     print('Setting up interferogram list using config parameters.')
     # read parameters from config file:
     config=configparser.ConfigParser()
     config.read(intf_config)
     max_baseline=config.getint('py-config','max_baseline')
     max_timespan=config.getint('py-config','max_timespan')
-    skip_finished=config.getboolean('py-config','skip_finished')    
+    #use value of skip_finished from the config file, unless it was forced to 'False'
+    if skip_finished:
+        skip_finished=config.getboolean('py-config','skip_finished')    
     intf_min_connectivity=config.getint('py-config','intf_min_connectivity')
     # load baseline table
     table = load_baseline_table(SAT)
@@ -405,7 +407,12 @@ def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False):
             donelist.append([scene0,scene1])
     # check for min_connectivity
     if intf_min_connectivity > 0:
+        print('connectivity',intf_min_connectivity)
+        print(intdays)
+        print('intf',intflist)
+        print('done',donelist)
         dayslist = table['day']
+        print('scenes',scenelist)
         for scene in scenelist:
             # find number of times the scene is 1st and last
             firstcount = 0
@@ -415,9 +422,11 @@ def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False):
             if len(intfarray) > 0:
                 firstcount += (intfarray[:,0]==scene).sum()
                 lastcount += (intfarray[:,1]==scene).sum()
-            if len(donearray) > 0:
+            if len(donearray) > 0 and skip_finished:
                 firstcount += (donearray[:,0]==scene).sum()
                 lastcount += (donearray[:,1]==scene).sum()
+            print(scene)
+            print(firstcount,lastcount)
             if scene != min(intdays) and lastcount < 1:
                 #scene is not first, so it should appear second in the list at least once
                 #get a sorted list of the scenes that appear before this one
@@ -426,7 +435,7 @@ def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False):
                 for day in nextdays:
                     nextscene = list(intdays.keys())[list(intdays.values()).index(day)]
                     pair = [nextscene,scene]
-                    if pair not in intflist and pair not in donelist:
+                    if pair not in intflist and not (skip_finished and pair in donelist):
                         print('adding %s to intflist to preserve backward connectivity'%pair)
                         intflist.append(pair)
                         break    
@@ -438,14 +447,13 @@ def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False):
                 for day in nextdays:
                     nextscene = list(intdays.keys())[list(intdays.values()).index(day)]
                     pair = [scene,nextscene]
-                    if pair not in intflist and pair not in donelist:
+                    if pair not in intflist and not (skip_finished and pair in donelist):
                         print('adding %s to intflist to preserve forward connectivity'%pair)
                         intflist.append(pair)
                         break
     # print number of interferograms
-    if skip_finished:    
-        print(('Found ' + '%d'%len(donelist) + ' interferograms to skip, finished'))
-    print(('Found ' + '%d'%len(intflist) + ' interferograms to do'))
+    print(('Found ' + '%d'%len(intflist) + ' total interferograms to do.'))
+    print(('Of these, ' + '%d'%len(donelist) + ' are already done.'))
     # write intf_file
     with open(intf_file, 'w') as f:
         for i in range(len(intflist)):
