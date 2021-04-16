@@ -45,5 +45,5 @@ if __name__ == '__main__':
     gmtsar_func.setup_intf(SAT,dataDotIn,args.intf,args.config,skip_finished=False)
 
     # make plot
-    plot_intf_list.plot_intf_list(SAT,dataDotIn,args.intf,args.config,lines=args.line,no_label=args.no_label, no_color=args.no_color, plot_fname='plan_intf')
+    plot_intf_list.plot_intf_list(SAT, dataDotIn, args.intf, args.config, lines=args.line, no_label=args.no_label, no_color=args.no_color, plot_fname='plan_intf')
     

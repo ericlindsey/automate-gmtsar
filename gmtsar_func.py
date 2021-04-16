@@ -407,12 +407,7 @@ def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False,ski
             donelist.append([scene0,scene1])
     # check for min_connectivity
     if intf_min_connectivity > 0:
-        print('connectivity',intf_min_connectivity)
-        print(intdays)
-        print('intf',intflist)
-        print('done',donelist)
         dayslist = table['day']
-        print('scenes',scenelist)
         for scene in scenelist:
             # find number of times the scene is 1st and last
             firstcount = 0
@@ -425,9 +420,7 @@ def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False,ski
             if len(donearray) > 0 and skip_finished:
                 firstcount += (donearray[:,0]==scene).sum()
                 lastcount += (donearray[:,1]==scene).sum()
-            print(scene)
-            print(firstcount,lastcount)
-            if scene != min(intdays) and lastcount < 1:
+            while scene != min(intdays) and lastcount < intf_min_connectivity:
                 #scene is not first, so it should appear second in the list at least once
                 #get a sorted list of the scenes that appear before this one
                 nextdays = np.sort(dayslist[np.where(dayslist < intdays[scene])])[::-1]
@@ -438,8 +431,12 @@ def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False,ski
                     if pair not in intflist and not (skip_finished and pair in donelist):
                         print('adding %s to intflist to preserve backward connectivity'%pair)
                         intflist.append(pair)
+                        lastcount = lastcount + 1
                         break    
-            if scene != max(intdays) and firstcount < 1:
+                if day == nextdays[-1]:
+                    # reached the end of scenes to add, we have to exit the while loop
+                    break
+            while scene != max(intdays) and firstcount < intf_min_connectivity:
                 #scene is not last. so it should appear first in the list at least once
                 #get a sorted list of the scenes that appear after this one
                 nextdays = np.sort(dayslist[np.where(dayslist > intdays[scene])])
@@ -450,7 +447,11 @@ def setup_intf(SAT,dataDotIn,intf_file,intf_config,lines=None,no_label=False,ski
                     if pair not in intflist and not (skip_finished and pair in donelist):
                         print('adding %s to intflist to preserve forward connectivity'%pair)
                         intflist.append(pair)
+                        firstcount = firstcount + 1
                         break
+                if day == nextdays[-1]:
+                    # reached the end of scenes to add, we have to exit the while loop
+                    break
     # print number of interferograms
     print(('Found ' + '%d'%len(intflist) + ' total interferograms to do.'))
     print(('Of these, ' + '%d'%len(donelist) + ' are already done.'))
