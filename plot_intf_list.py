@@ -11,12 +11,12 @@ Created on Wed Feb 7 10:50:38 2018
 import os,sys,argparse,configparser
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 
 # user-defined modules
 import gmtsar_func
 
-
-def plot_intf_list(SAT,dataDotIn,intf_file,config_file,lines=None,no_label=False,no_color=False,plot_fname='plot_intfs'):
+def plot_intf_list(SAT,dataDotIn,intf_file,config_file,lines=None,no_label=False,no_color=False,plot_fname='plot_intfs',show_connectivity=True):
     #get list of scenes, and convert to time/baseline coordinates
     # load baseline table
     table = gmtsar_func.load_baseline_table(SAT)
@@ -52,7 +52,11 @@ def plot_intf_list(SAT,dataDotIn,intf_file,config_file,lines=None,no_label=False
 
     #create plots
     plt.figure(figsize=(10,6))
-    ax=plt.subplot(111)
+    if show_connectivity:
+        gs = gridspec.GridSpec(3, 1)
+        ax = plt.subplot(gs[0:2,0])
+    else:
+        ax = plt.subplot(111)
     # plot all intfs in the two lists
     label1='To do'
     color1='r'
@@ -89,6 +93,48 @@ def plot_intf_list(SAT,dataDotIn,intf_file,config_file,lines=None,no_label=False
     ax.legend()
     ax.set_ylabel('Perp. baseline (m)')
     ax.set_xlabel('Time (years)')
+
+    # plot number of forward/backward pairs from each date
+    if show_connectivity:
+        posbars=np.zeros(len(scenelist))
+        negbars=np.zeros(len(scenelist))
+        barxloc=np.zeros(len(scenelist))
+        for i,scene in enumerate(scenelist):
+            # find number of times the scene is 1st and last
+            firstcount = 0
+            lastcount = 0
+            newarray=np.array(newlist)
+            donearray=np.array(donelist)
+            if len(newarray) > 0:
+                firstcount += (newarray[:,0]==scene).sum()
+                lastcount += (newarray[:,1]==scene).sum()
+            if len(donearray) > 0:
+                firstcount += (donearray[:,0]==scene).sum()
+                lastcount += (donearray[:,1]==scene).sum()
+            posbars[i] = firstcount
+            negbars[i] = -1*lastcount
+            barxloc[i] = decyears[scene]
+        barwidth=min(np.sort(barxloc)[1:]-np.sort(barxloc)[0:-1])/2
+        ymax=int(np.ceil(max(max(posbars),max(-1*negbars))/2)*2)
+        print(ymax)
+        major_ticks = np.linspace(-ymax,ymax,5)
+        minor_ticks = np.arange(-ymax,ymax+1)
+
+
+        ax1=plt.subplot(gs[2,0])
+        ax1.bar(barxloc,posbars, width=barwidth)
+        ax1.bar(barxloc,negbars, width=barwidth)
+        ax1.plot(list(decyears.values()),0*barxloc,'b.', label='Scenes')
+        ax1.plot(decyears[scenelist[0]],0,'r.',label='Master')
+        ax1.set_ylabel('Connectivity')
+        ax1.set_xlabel('Time (years)')
+        ax1.set_ylim((-ymax-0.5,ymax+0.5))
+        ax1.set_yticks(major_ticks)
+        ax1.set_yticks(minor_ticks, minor=True)
+        ax1.grid(axis='y', which='minor', alpha=0.2)
+        ax1.grid(axis='y', which='major', alpha=0.5)
+        #ax1.axhline(0, color='grey', linewidth=0.8)
+
     image_fname='%s.png'%plot_fname
     plt.savefig(image_fname)
     print('created figure %s'%image_fname)
