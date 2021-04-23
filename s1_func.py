@@ -7,7 +7,8 @@ Created on Wed Oct 25 11:45:24 2017
 """
 
 import os,sys,shutil,glob,datetime,multiprocessing,random,string #,subprocess,errno
-import requests,json,tarfile
+import requests,json,cgi,tarfile
+from xml.etree import ElementTree
 
 #user imports 
 #note that this is a circular import
@@ -201,34 +202,63 @@ def get_latest_auxcal_esa_api(sat_ID, target_path='.'):
         print('extracted file:',auxfile_name)
     return auxfile_name
 
-def get_latest_orbit_esa_api(sat_ab,start_time,end_time,orbit_type):
+def get_latest_orbit_copernicus_api(sat_ab,start_time,end_time,orbit_type):
     """
-    Use the ESA API to find the latest orbit file.
-    Input example: 'A', '20180810T224719', '20180810T224816', 'AUX_POEORB'
-    Returns a python dictionary, with important elements 'product_type', 'physical_name', and 'remote_url'.
+    Use the Copernicus GNSS products API to find the latest orbit file.
+    Input example formats: 'A', '2018-08-10T22:47:19', '2018-08-10T22:48:16', 'AUX_POEORB'
+    Returns a python dictionary, with elements 'orbit_type' (matching the input orbit_type) and 'remote_url'.
     """
-    # original credit to https://github.com/asjohnston-asf/s1qc-orbit-api/blob/master/src/main.py
-    # modified by E. Lindsey, May 2020
+    # modified by E. Lindsey, April 2021
 
-    platform = f'S1{sat_ab}'
+    # compose search filter
+    filterstring = f"startswith(Name,'S1{sat_ab}') and substringof('{orbit_type}',Name) and ContentDate/Start lt datetime'{start_time}' and ContentDate/End gt datetime'{end_time}'"
+    
+    # create HTTPS request and get response
+    params = { '$top': 1, '$orderby': 'ContentDate/Start asc', '$filter': filterstring }
+    search_response = requests.get(url='https://scihub.copernicus.eu/gnss/odata/v1/Products', params=params, auth=('gnssguest','gnssguest'))
+    search_response.raise_for_status()
 
-    params = {
-        'product_type': orbit_type,
-        'product_name__startswith': platform,
-        'validity_start__lt': start_time,
-        'validity_stop__gt': end_time,
-        'ordering': '-creation_date',
-        'page_size': '1',
-    }
+    # parse XML tree from response
+    tree = ElementTree.fromstring(search_response.content)
+    
+    #extract w3.org URL that gets inserted into all sub-element names for some reason
+    w3url=tree.tag.split('feed')[0]
+    
+    # extract the product's hash-value ID
+    product_ID=tree.findtext(f'./{w3url}entry/{w3url}id')
 
-    response = requests.get(url='https://qc.sentinel1.eo.esa.int/api/v1/', params=params)
-    response.raise_for_status()
-    qc_data = response.json()
-
-    orbit = None
-    if qc_data['results']:
-        orbit = qc_data['results'][0]
+    # return the orbit type and download URL
+    if product_ID is not None:
+        orbit={'orbit_type':orbit_type, 'remote_url':f'{product_ID}/$value'}
+    else:
+        orbit=None
     return orbit
+
+def download_copernicus_orbit_file(dest_folder,remote_url):
+    """
+    Download orbit file returned by the Copernicus GNSS products API.
+    Inputs: destination folder (absolute or relative path) and the remote URL, with a format like: https://scihub.copernicus.eu/gnss/odata/v1/Products('3a773f7a-0602-44e4-b4c0-609b7f4291f0')/$value
+    Returns the absolute path of the saved file.
+    """
+    # created by E. Lindsey, April 2021
+
+    # check that the output folder exists
+    os.makedirs(dest_folder, exist_ok = True)
+
+    # download the orbit file
+    dl_response = requests.get(url=remote_url, auth=('gnssguest','gnssguest'))
+
+    # find the filename in the header
+    header = dl_response.headers['content-disposition']
+    header_value, header_params = cgi.parse_header(header)
+
+    #compose the full filename
+    eof_filename = os.path.abspath(os.path.join(dest_folder,header_params['filename']))
+
+    # save the file with the correct filename
+    open(eof_filename, 'wb').write(dl_response.content)
+
+    return eof_filename
 
 def get_latest_orbit_file(sat_ab,imagestart,imageend,s1_orbit_dirs,download_missing=True,skip_notfound=True):
     """
@@ -241,7 +271,7 @@ def get_latest_orbit_file(sat_ab,imagestart,imageend,s1_orbit_dirs,download_miss
     eofprodlist=[]
     latest_eof=None
 
-    # add one hour to the image start/end times to ensure we have enough coverage in the orbit file
+    # add a half hour to the image start/end times to ensure we have enough coverage in the orbit file
     imagestart_pad = imagestart - datetime.timedelta(hours=0.5)
     imageend_pad = imageend + datetime.timedelta(hours=0.5)
      
@@ -271,13 +301,13 @@ def get_latest_orbit_file(sat_ab,imagestart,imageend,s1_orbit_dirs,download_miss
 
         if orbit:
             # set download location to one of the user-supplied folders. We assume the user would either supply one folder, or two folders with 'resorb' coming second.
-            if len(s1_orbit_dirs)>1 and orbit['product_type'] == 'AUX_RESORB':
+            if len(s1_orbit_dirs)>1 and orbit['orbit_type'] == 'AUX_RESORB':
                 target_dir=s1_orbit_dirs[1]
             else:
                 target_dir=s1_orbit_dirs[0]
 
             # compute the full path to the file
-            latest_eof = os.path.abspath(os.path.join(target_dir,orbit['physical_name']))
+            latest_eof = os.path.abspath(os.path.join(target_dir,orbit['orbit_filename']))
 
             # download the file
             remote_url = orbit['remote_url']
