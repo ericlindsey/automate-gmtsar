@@ -24,7 +24,9 @@ Summary of steps
 
 2.  Combine the frames to fit your desired latitude bounds using cat_s1.py
 
-3.  Set up your processing directory with the DEM and links to the raw data using setup_tops.sh
+3.  a. Set up your processing directory with the DEM and links to the raw data using setup_tops.sh
+    
+    b. Download the most recent AUX_CAL files from <https://qc.sentinel1.copernicus.eu/>
 
 4.  Generate SLCs and radar geometry with gmtsar_app.py, startstage = 1, endstage = 3
 
@@ -157,7 +159,9 @@ nproc - number of processes to run in parallel. Probably 1 if the data are all o
 Running this command will take a while, since it has to unzip the data and write the images back out to disk.
 
 
-**3. Setting up your processing directory**
+**3. Setting up files**
+
+**a. Setting up your processing directory**
 
 This is a short step. GMTSAR expects the raw data and DEM to be in a specific directory structure, with one directory for each subswath (F1, F2, F3). You generally want to name your top directory something useful, like the name of the path and your area. Then make two sub-folders: topo/ and raw_orig/:
 
@@ -178,6 +182,10 @@ Now, run the command 'setup_tops.csh' from your processing directory, which will
     $ $GMTSAR_APP/setup_tops.csh
 
 That's it! Ready for the next step.
+
+**b. Update your AUX_CAL files**
+
+The Sentinel-1 processing workflow requires an additional XML file for each satellite, named s1[a,b]\_aux_cal.xml. These files can be found at <https://qc.sentinel1.copernicus.eu/>. You should download the most recent file, and extract the .xml files from the .TGZ file, then place them in the orbit folder defined in your config file (see step 4, below). This used to be an automatic step when ESA allowed these files to be found via an API, but this API is no longer working, so we have to do this manually. Fortunately the AUX_CAL files are updated rarely, only every few months or so.
 
 **4. Generate SLCs and radar geometry using gmtsar\_app.py**
 
