@@ -318,15 +318,8 @@ def get_latest_orbit_file(sat_ab,imagestart,imageend,s1_orbit_dirs,download_miss
             else:
                 target_dir=s1_orbit_dirs[0]
 
-            # compute the full path to the file
-            latest_eof = os.path.abspath(os.path.join(target_dir,orbit['orbit_filename']))
-
-            # download the file
-            remote_url = orbit['remote_url']
-            response = requests.get(url=remote_url)
-            response.raise_for_status()
-            with open(latest_eof, 'wb') as f:
-                f.write(response.content)
+            # download and return the full path to the file
+            latest_eof = download_copernicus_orbit_file(target_dir,orbit['remote_url'])
 
     if not latest_eof or not os.path.exists(latest_eof):
         if skip_notfound:
