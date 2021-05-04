@@ -8,14 +8,21 @@ from xml.etree import ElementTree
 def get_orbit_copernicus_api(granule, orbit_type):
     # use the new Copernicus GNSS data hub API to find an orbit file
     # Updated by E. Lindsey, April 2021
-    #
+    
+    # some hard-coded URLs to make the API work
+    scihub_url='https://scihub.copernicus.eu/gnss/odata/v1/Products'
+    # these are from the namespaces of the XML file returned in the query. Hopefully not subject to change?
+    w3_url='{http://www.w3.org/2005/Atom}'
+    m_url='{http://schemas.microsoft.com/ado/2007/08/dataservices/metadata}'
+    d_url='{http://schemas.microsoft.com/ado/2007/08/dataservices}'
+
     start_time = f'{granule[17:21]}-{granule[21:23]}-{granule[23:25]}T{granule[26:28]}:{granule[28:30]}:{granule[30:32]}'
     end_time = f'{granule[33:37]}-{granule[37:39]}-{granule[39:41]}T{granule[42:44]}:{granule[44:46]}:{granule[46:48]}'
     platform = granule[0:3]
 
     filterstring = "startswith(Name,'%s') and substringof('%s',Name) and ContentDate/Start lt datetime'%s' and ContentDate/End gt datetime'%s'"%(platform,orbit_type,start_time,end_time)
     params = { '$top': 1, '$orderby': 'ContentDate/Start asc', '$filter': filterstring }
-    search_response = requests.get(url='https://scihub.copernicus.eu/gnss/odata/v1/Products', params=params, auth=('gnssguest','gnssguest'))
+    search_response = requests.get(url=scihub_url, params=params, auth=('gnssguest','gnssguest'))
     search_response.raise_for_status()
 
     # parse XML tree from response
@@ -25,11 +32,13 @@ def get_orbit_copernicus_api(granule, orbit_type):
     w3url=tree.tag.split('feed')[0]
     
     # extract the product's hash-value ID
-    product_ID=tree.findtext(f'./{w3url}entry/{w3url}id')
+    product_ID=tree.findtext(f'.//{w3_url}entry/{m_url}properties/{d_url}Id')
+    product_url = f"{scihub_url}('{product_ID}')/$value"
+    product_name=tree.findtext(f'./{w3url}entry/{w3url}title')
 
-    # return the orbit type and download URL
+    # return the orbit name, type, and download URL
     if product_ID is not None:
-        orbit={'orbit_type':orbit_type, 'remote_url':f'{product_ID}/$value'}
+        orbit={'name':product_name, 'orbit_type':orbit_type, 'remote_url':product_url}
     else:
         orbit=None
     return orbit
@@ -76,5 +85,6 @@ if __name__ == '__main__':
             sys.exit(1)
         else:
             orbit = get_orbit_copernicus_api(granule, 'AUX_RESORB')
+    print('Found orbit: ',orbit['name'], ' at ', orbit['remote_url'])
     eof_filename = download_copernicus_orbit_file(dest_folder, orbit['remote_url'])
     print(f'Downloaded file: {eof_filename}')

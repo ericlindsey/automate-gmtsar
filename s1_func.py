@@ -212,6 +212,13 @@ def get_latest_orbit_copernicus_api(sat_ab,start_time,end_time,orbit_type):
     Returns a python dictionary, with elements 'orbit_type' (matching the input orbit_type) and 'remote_url'.
     """
     # modified by E. Lindsey, April 2021
+    
+    # some hard-coded URLs to make the API work
+    scihub_url='https://scihub.copernicus.eu/gnss/odata/v1/Products'
+    # these are from the namespaces of the XML file returned in the query. Hopefully not subject to change?
+    w3_url='{http://www.w3.org/2005/Atom}'
+    m_url='{http://schemas.microsoft.com/ado/2007/08/dataservices/metadata}'
+    d_url='{http://schemas.microsoft.com/ado/2007/08/dataservices}'
 
     # compose search filter
     filterstring = f"startswith(Name,'S1{sat_ab}') and substringof('{orbit_type}',Name) and ContentDate/Start lt datetime'{start_time}' and ContentDate/End gt datetime'{end_time}'"
@@ -228,11 +235,13 @@ def get_latest_orbit_copernicus_api(sat_ab,start_time,end_time,orbit_type):
     w3url=tree.tag.split('feed')[0]
     
     # extract the product's hash-value ID
-    product_ID=tree.findtext(f'./{w3url}entry/{w3url}id')
+    product_ID=tree.findtext(f'.//{w3_url}entry/{m_url}properties/{d_url}Id')
+    product_url = f"{scihub_url}('{product_ID}')/$value"
+    product_name=tree.findtext(f'./{w3url}entry/{w3url}title')
 
-    # return the orbit type and download URL
+    # return the orbit name, type, and download URL
     if product_ID is not None:
-        orbit={'orbit_type':orbit_type, 'remote_url':f'{product_ID}/$value'}
+        orbit={'name':product_name, 'orbit_type':orbit_type, 'remote_url':product_url}
     else:
         orbit=None
     return orbit
@@ -295,8 +304,8 @@ def get_latest_orbit_file(sat_ab,imagestart,imageend,s1_orbit_dirs,download_miss
     elif download_missing:
         #no EOF found locally, download from ESA
         print('No matching orbit file found locally, downloading from ESA')
-        tstart=imagestart_pad.strftime('%Y%m%dT%H%M%S')
-        tend=imageend_pad.strftime('%Y%m%dT%H%M%S')
+        tstart=imagestart_pad.strftime('%Y-%m-%dT%H:%M:%S')
+        tend=imageend_pad.strftime('%Y-%m-%dT%H:%M:%S')
 
         orbit = get_latest_orbit_copernicus_api(sat_ab,tstart,tend,'AUX_POEORB')
         if not orbit:
