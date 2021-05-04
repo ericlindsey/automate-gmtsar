@@ -428,9 +428,11 @@ def create_frame_tops_parallel(filelist,eof,llpins,logfile,workdir,unzipped):
         os.makedirs(temp_unzip_dir, exist_ok=False)
         unzip_images_to_dir(filelist,temp_unzip_dir)
         # need to provide full path to glob to get full paths back
-        safelist = glob.glob('%s/%s/%s/S1*SAFE'%(cwd,workdir,temp_unzip_dir))
+        #safelist = glob.glob('%s/%s/%s/S1*SAFE'%(cwd,workdir,temp_unzip_dir))
+        safelist = sorted(glob.glob('%s/%s/%s/S1*SAFE'%(cwd,workdir,temp_unzip_dir)), key=os.path.basename)
     else:
-        safelist = filelist
+        #safelist = filelist
+        safelist = sorted(filelist,key=os.path.basename)
 
     # write file list to the current directory
     gmtsar_func.write_list('SAFE.list', safelist)
@@ -450,7 +452,7 @@ def create_frame_tops_parallel(filelist,eof,llpins,logfile,workdir,unzipped):
     # copy result back to main directory
     result_safe=glob.glob('S1*SAFE')[0]
     shutil.move(result_safe,os.path.join(cwd,result_safe))
-    shutil.move(logfile,cwd)
+    shutil.move(logfile,os.path.join(cwd,logfile))
 
     # clean up
     os.chdir(cwd)

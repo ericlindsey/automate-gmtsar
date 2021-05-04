@@ -69,7 +69,7 @@ if __name__ == '__main__':
         print('EOF: %s\n'%eofs[ab_orbit])
 
         log_fname='log_%s.txt'%ab_orbit
-        safe_fname = 'SAFE_filelist_%s.txt'%ab_orbit
+        #safe_fname = 'SAFE_filelist_%s.txt'%ab_orbit
         temp_workdir = 'temp_cat_orbit_' + ab_orbit
 
         # append args to list of tuples for parallel run
