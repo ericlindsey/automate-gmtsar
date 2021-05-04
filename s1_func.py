@@ -162,45 +162,48 @@ def get_s1_auxfile(sat_ID, s1_orbit_dirs, force_update=False):
 
     # if none found, download from ESA
     if local_auxfile is None:
-        local_auxfile = get_latest_auxcal_esa_api(sat_ID.upper(),target_path=s1_orbit_dirs[0])
+        #local_auxfile = get_latest_auxcal_esa_api(sat_ID.upper(),target_path=s1_orbit_dirs[0])
+        print("Error: No aux_cal file found for %s - download from https://qc.sentinel1.copernicus.eu/ and place in %s"%(sat_ID.upper(),s1_orbit_dirs[0]))
+        sys.exit(1)
 
     return local_auxfile
 
-def get_latest_auxcal_esa_api(sat_ID, target_path='.'):
-    '''Query ESA for the latest aux file for this satellite and download it.
-    Then extract the xml file and place it in the current directory.'''
-    
-    # query ESA for the latest AUX_CAL file
-    params = {'product_type': 'AUX_CAL', 'product_name__startswith': sat_ID, 'ordering': '-creation_date', 'page_size': '1'}
-    response = requests.get(url='https://qc.sentinel1.eo.esa.int/api/v1/', params=params)
-    response.raise_for_status()
-    qc_data = response.json()
-
-    if qc_data['results']:
-        # convert json to dictionary
-        auxfile = qc_data['results'][0]
-
-        # get remote url and download the file
-        remote_url = auxfile['remote_url']
-        local_filename = os.path.join(target_path,remote_url.split('/')[-1])
-        response = requests.get(url=remote_url)
-        response.raise_for_status()
-        with open(local_filename, 'wb') as f:
-            f.write(response.content)
-        print('downloaded from ESA:',local_filename)
-        
-        # extract the compressed SAFE folder and place the aux_cal file in current directory.
-        with tarfile.open(local_filename) as tf:
-            members=tf.getmembers()
-            for member in members:
-                if '-aux-cal.xml' in member.name:
-                    # strip the directory structure out of the name before extracting
-                    member.name=os.path.basename(member.name)
-                    tf.extract(member,path=target_path)
-                    auxfile_name = os.path.join(target_path,member.name)
-                    break
-        print('extracted file:',auxfile_name)
-    return auxfile_name
+# no longer working - currently manual download of aux_cal files is required.
+#def get_latest_auxcal_esa_api(sat_ID, target_path='.'):
+#    '''Query ESA for the latest aux file for this satellite and download it.
+#    Then extract the xml file and place it in the current directory.'''
+#    
+#    # query ESA for the latest AUX_CAL file
+#    params = {'product_type': 'AUX_CAL', 'product_name__startswith': sat_ID, 'ordering': '-creation_date', 'page_size': '1'}
+#    response = requests.get(url='https://qc.sentinel1.eo.esa.int/api/v1/', params=params)
+#    response.raise_for_status()
+#    qc_data = response.json()
+#
+#    if qc_data['results']:
+#        # convert json to dictionary
+#        auxfile = qc_data['results'][0]
+#
+#        # get remote url and download the file
+#        remote_url = auxfile['remote_url']
+#        local_filename = os.path.join(target_path,remote_url.split('/')[-1])
+#        response = requests.get(url=remote_url)
+#        response.raise_for_status()
+#        with open(local_filename, 'wb') as f:
+#            f.write(response.content)
+#        print('downloaded from ESA:',local_filename)
+#        
+#        # extract the compressed SAFE folder and place the aux_cal file in current directory.
+#        with tarfile.open(local_filename) as tf:
+#            members=tf.getmembers()
+#            for member in members:
+#                if '-aux-cal.xml' in member.name:
+#                    # strip the directory structure out of the name before extracting
+#                    member.name=os.path.basename(member.name)
+#                    tf.extract(member,path=target_path)
+#                    auxfile_name = os.path.join(target_path,member.name)
+#                    break
+#        print('extracted file:',auxfile_name)
+#    return auxfile_name
 
 def get_latest_orbit_copernicus_api(sat_ab,start_time,end_time,orbit_type):
     """
@@ -295,9 +298,9 @@ def get_latest_orbit_file(sat_ab,imagestart,imageend,s1_orbit_dirs,download_miss
         tstart=imagestart_pad.strftime('%Y%m%dT%H%M%S')
         tend=imageend_pad.strftime('%Y%m%dT%H%M%S')
 
-        orbit = get_latest_orbit_esa_api(sat_ab,tstart,tend,'AUX_POEORB')
+        orbit = get_latest_orbit_copernicus_api(sat_ab,tstart,tend,'AUX_POEORB')
         if not orbit:
-            orbit = get_latest_orbit_esa_api(sat_ab,tstart,tend,'AUX_RESORB')        
+            orbit = get_latest_orbit_copernicus_api(sat_ab,tstart,tend,'AUX_RESORB')        
 
         if orbit:
             # set download location to one of the user-supplied folders. We assume the user would either supply one folder, or two folders with 'resorb' coming second.
