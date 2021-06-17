@@ -97,6 +97,8 @@ def get_master_short_name(SAT,scene):
         # We want the corresponding scene name (e.g. S1A20170629_ALL_F3) from a line of data.in, which looks like xml:eof
         #we look for PRM files in raw/, then crop off the 'raw/' and '.PRM' to get the name.        
         mydate=s1_func.get_datestring_from_xml(scene)
+        print(scene)
+        print(mydate)
         filename=glob.glob('raw/*%s_ALL_F?.PRM'%mydate)[0]
         scenename=os.path.splitext(os.path.basename(filename))[0]
         return scenename
@@ -474,7 +476,12 @@ def load_baseline_table(SAT):
             # we have to replace that value with the short PRM name for the 'orbit' entry in the dictionary.
             for item in table:
                 xmlname = item['orbit'].astype(str)
-                shortname = get_master_short_name(SAT,xmlname)
+                if xmlname[0] == 's':
+                    #this older format may be deprecated? keep for now
+                    # TODO: Test with recent version
+                    shortname = get_master_short_name(SAT,xmlname)
+                else:
+                    shortname = xmlname
                 item['orbit']=shortname
     else:
         print('did not find baseline table!')
