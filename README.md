@@ -5,11 +5,11 @@ This repository contains a set of python and modified C-shell scripts that shoul
 All the manual creation of files and selection of processing parameters is handled by python, and the user only has to interact at a few points to run the next command.
 See the instructions below for an example with Sentinel-1 data.
 
-Eric Lindsey, last updated Feb 2021
+Eric Lindsey, last updated June 2021
 
 **Setup and installation:**
 
-Latest tests: works with GMTSAR 6.0 and Python 3.8.
+Latest tests: works with GMT 6.1, GMTSAR 6.0 and Python 3.8, installed via anaconda on macOS and Ubuntu.
 
 Run the command 'setup_gmtsar_app.sh' to add the $GMTSAR_APP environment variable to your shell.
 This will print out an export command you can put in your .zshrc or .bashrc to include this variable automatically.
