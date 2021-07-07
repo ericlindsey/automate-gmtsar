@@ -5,11 +5,11 @@ This repository contains a set of python and modified C-shell scripts that shoul
 All the manual creation of files and selection of processing parameters is handled by python, and the user only has to interact at a few points to run the next command.
 See the instructions below for an example with Sentinel-1 data.
 
-Eric Lindsey, last updated Feb 2021
+Eric Lindsey, last updated June 2021
 
 **Setup and installation:**
 
-Latest tests: works with GMTSAR 6.0 and Python 3.8.
+Latest tests: works with GMT 6.1, GMTSAR 6.0 and Python 3.8, installed via anaconda on macOS and Ubuntu.
 
 Run the command 'setup_gmtsar_app.sh' to add the $GMTSAR_APP environment variable to your shell.
 This will print out an export command you can put in your .zshrc or .bashrc to include this variable automatically.
@@ -191,7 +191,7 @@ The Sentinel-1 processing workflow requires an additional XML file for each sate
 
 We have finally finished setting up the data, and now we are ready to start processing. The first stage is to get the images into a format that makes them ready to be interfered. We call these aligned and pre-processsed images "SLC" for Single-Look-Complex. This is the full resolution complex image, in radar coordinates, stored in a matrix that has been precisely aligned to match a 'master' image. After this step, interferometry is just complex multiplication.
 
-When you ran setup_tops.csh in the last step, it copied two files to your directory in addition to creating the F1/ etc. directories. These are batch.config and run_tops_subswaths.csh.
+When you ran setup_tops.csh in the last step, it copied two files to your directory in addition to creating the F1/ etc. directories. These are batch.config and run_gmtsar_app.csh.
 
 The first file, batch.config, contains the configuration parameters we need to set up. For now, the important values to check we set correctly are:
 
@@ -211,7 +211,7 @@ Notes:
 
 Now, we can easily submit a job for all requested subswaths:
 
-    $ ./run_tops_subswaths.csh
+    $ ./run_gmtsar_app.csh
 
 This will give us a message that 3 jobs have been started. This step typically takes a few hours, depending on the number of scenes and how large they are.
 
@@ -244,7 +244,7 @@ Note: Each interferogram (for each subswath) always runs on one CPU. Here, we'll
 
 Once everything is set, run gmtsar again for all subswaths:
 
-    $ ./run_tops_subswaths.csh
+    $ ./run_gmtsar_app.csh
 
 In this example, we will run just the interferogram stage (stage 4), in this case with a maximum timespan of 48 days, and it will skip the unwrapping stage (snaphu threshold set to zero). Each interferogram should take just 10-15 minutes to run.
 

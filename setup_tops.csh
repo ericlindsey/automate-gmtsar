@@ -16,6 +16,6 @@ end
 
 if ( ! -f batch.config ) then
   cp $GMTSAR_APP/batch.config .
-  cp $GMTSAR_APP/run_tops_subswaths.csh .
+  cp $GMTSAR_APP/run_gmtsar_app.csh .
 endif
 
