@@ -233,12 +233,12 @@ If everything looks correct and there were no errors in the .log files, we are r
     num_processors = 4
 
 If we want to check that our interferogram-generation settings are good,
-we can first run 'plot_intf_list.py' to generate the intf.in list and make a
+we can first run 'plan_intf_list.py' to generate the intf.in list and make a
 figure showing the connectivity:
 
-    $ python $GMTSAR_APP/plot_intf_list.py batch.config
+    $ python $GMTSAR_APP/plan_intf_list.py batch.config
 
-Look at the file 'intfs.png' and adjust your settings as necessary.
+Look at the file 'intfs.png' and adjust your settings as necessary. If you manually edited your intf.in file and want to see how the connectivity looks, you can also run 'plot_intf_list.py' to just create a plot of the current plan, without changing the intf.in file.
 
 Note: Each interferogram (for each subswath) always runs on one CPU. Here, we'll require 12 processors (4 CPUs \*3 subswaths), but if we have less than 12 CPUs, this will be overkill and things won't actually run as fast as promised. On a laptop you may want to run one subswath at a time to get results done for that region more quickly, or else run things on a server.
 
